@@ -1,0 +1,37 @@
+|
+•  Environment variable DATABASE_URL found in D:\code\companyfollo\.env. If you wish to create a new Neon database, please remove the existing variable.
+1:43:52 am [vite] (client) Re-optimizing dependencies because vite config has changed
+Port 3000 is in use, trying another one...
+
+  VITE v8.3.4  ready in 4233 ms
+
+  ➜  Local:   http://localhost:3001/
+  ➜  Network: use --host to expose
+  ➜  press h + enter to show help
+1:43:53 am [vite] (client) [optimizer] bundling dependencies...
+1:45:31 am [vite] (ssr) hmr update /src/routes/demo/ai-chat.css
+1:46:18 am [vite] (ssr) hmr update /src/routes/demo/ai-chat.css
+1:47:21 am [vite] (ssr) hmr update /src/routes/demo/ai-chat.css
+1:47:30 am [vite] (ssr) hmr update /src/routes/demo/ai-chat.css
+File D:\code\companyfollo\src\routeTree.gen.ts was modified by another process during processing.
+1:51:08 am [vite] (ssr) hmr update /src/routes/demo/ai-chat.css
+1:51:44 am [vite] (ssr) hmr update /src/routes/demo/ai-chat.css
+1:51:51 am [vite] (ssr) hmr update /src/routes/demo/ai-chat.css
+1:52:45 am [vite] (ssr) hmr update /src/routes/demo/ai-chat.css
+1:52:45 am [vite] (ssr) hmr update /src/routes/demo/ai-chat.css
+1:52:45 am [vite] (ssr) hmr update /src/routes/demo/ai-chat.css
+1:52:46 am [vite] (ssr) hmr update /src/routes/demo/ai-chat.css
+1:52:54 am [vite] (ssr) hmr update /src/routes/demo/ai-chat.css
+File D:\code\companyfollo\src\routeTree.gen.ts was modified by another process during processing.
+1:53:02 am [vite] (ssr) hmr update /src/routes/demo/ai-chat.css
+1:53:02 am [vite] (ssr) hmr update /src/routes/demo/ai-chat.css
+2:02:58 am [vite] (ssr) hmr update /src/routes/demo/ai-chat.css
+2:03:09 am [vite] (ssr) hmr update /src/routes/demo/ai-chat.css
+2:03:09 am [vite] (ssr) hmr update /src/routes/demo/ai-chat.css
+2:04:22 am [vite] (ssr) hmr update /src/routes/demo/ai-chat.css
+2:10:57 am [vite] .env changed, restarting server...
+|
+•  Environment variable DATABASE_URL found in D:\code\companyfollo\.env. If you wish to create a new Neon database, please remove the existing variable.
+2:10:59 am [vite] server restarted.
+2:11:00 am [vite] (client) [optimizer] scanning dependencies...
+2:11:01 am [vite] (client) [optimizer] bundling dependencies...

@@ -1,0 +1,86 @@
+$ vite dev --port 3000
+(node:22732) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+
+To prepare for this change:
+- If you want the current behavior, explicitly use 'sslmode=verify-full'
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+(Use `node --trace-warnings ...` to show where the warning was created)
+2026-10-19T20:15:21.752Z ERROR [Better Auth]: Could not validate the database schema. Check your database connection.
+AggregateError: 
+    at D:\code\companyfollo\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async PostgresDriver.acquireConnection (file:///D:/code/companyfollo/node_modules/kysely/dist/dialect/postgres/postgres-driver.js:21:24)
+    at async RuntimeDriver.acquireConnection (file:///D:/code/companyfollo/node_modules/kysely/dist/driver/runtime-driver.js:54:28)
+    at async DefaultConnectionProvider.provideConnection (file:///D:/code/companyfollo/node_modules/kysely/dist/driver/default-connection-provider.js:8:28) {
+  code: 'ETIMEDOUT',
+  [errors]: [
+    Error: connect ETIMEDOUT 2600:1f16:729:b904:bb79:cee9:5022:3861:5432
+        at createConnectionError (node:net:1678:14)
+        at Timeout.internalConnectMultipleTimeout (node:net:1737:38)
+        at listOnTimeout (node:internal/timers:590:11)
+        at process.processTimers (node:internal/timers:523:7) {
+      errno: -4039,
+      code: 'ETIMEDOUT',
+      syscall: 'connect',
+      address: '2600:1f16:729:b904:bb79:cee9:5022:3861',
+      port: 5432
+    },
+    Error: connect ETIMEDOUT 3.141.122.14:5432
+        at createConnectionError (node:net:1678:14)
+        at Timeout.internalConnectMultipleTimeout (node:net:1737:38)
+        at listOnTimeout (node:internal/timers:590:11)
+        at process.processTimers (node:internal/timers:523:7) {
+      errno: -4039,
+      code: 'ETIMEDOUT',
+      syscall: 'connect',
+      address: '3.141.122.14',
+      port: 5432
+    },
+    Error: connect ETIMEDOUT 2600:1f16:729:b915:bb3e:237c:b2ee:22a9:5432
+        at createConnectionError (node:net:1678:14)
+        at Timeout.internalConnectMultipleTimeout (node:net:1737:38)
+        at listOnTimeout (node:internal/timers:590:11)
+        at process.processTimers (node:internal/timers:523:7) {
+      errno: -4039,
+      code: 'ETIMEDOUT',
+      syscall: 'connect',
+      address: '2600:1f16:729:b915:bb3e:237c:b2ee:22a9',
+      port: 5432
+    },
+    Error: connect ETIMEDOUT 3.18.239.121:5432
+        at createConnectionError (node:net:1678:14)
+        at Timeout.internalConnectMultipleTimeout (node:net:1737:38)
+        at listOnTimeout (node:internal/timers:590:11)
+        at process.processTimers (node:internal/timers:523:7) {
+      errno: -4039,
+      code: 'ETIMEDOUT',
+      syscall: 'connect',
+      address: '3.18.239.121',
+      port: 5432
+    },
+    Error: connect ETIMEDOUT 2600:1f16:729:b92b:fe3c:f60f:d694:464d:5432
+        at createConnectionError (node:net:1678:14)
+        at Timeout.internalConnectMultipleTimeout (node:net:1737:38)
+        at listOnTimeout (node:internal/timers:590:11)
+        at process.processTimers (node:internal/timers:523:7) {
+      errno: -4039,
+      code: 'ETIMEDOUT',
+      syscall: 'connect',
+      address: '2600:1f16:729:b92b:fe3c:f60f:d694:464d',
+      port: 5432
+    },
+    Error: connect ETIMEDOUT 18.189.49.143:5432
+        at createConnectionError (node:net:1678:14)
+        at afterConnectMultiple (node:net:1708:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -4039,
+      code: 'ETIMEDOUT',
+      syscall: 'connect',
+      address: '18.189.49.143',
+      port: 5432
+    }
+  ]
+}

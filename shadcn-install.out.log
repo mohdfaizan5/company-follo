@@ -1,0 +1,25 @@
+  - src\components\ui\card.tsx
+  - src\components\ui\avatar.tsx
+  - src\components\ui\input.tsx
+  - src\components\ui\spinner.tsx
+  - src\components\ui\scroll-area.tsx
+  - src\lib\segmented-control.ts
+  - src\components\ui\button.tsx
+  - src\components\ui\separator.tsx
+  - src\components\ui\tooltip.tsx
+  - src\hooks\use-mobile.ts
+  - src\components\ui\skeleton.tsx
+  - src\components\ui\tabs.tsx
+  - src\components\ui\dialog.tsx
+  - src\components\ui\sheet.tsx
+  - src\components\ui\sidebar.tsx
+
+
+Something went wrong. Please check the error below for more details.
+If the problem persists, please open an issue on GitHub.
+
+The socket connection was closed unexpectedly. For more information, pass `verbose: true` in the second argument to fetch()
+
+You can also try a previous version to see if that works:
+bunx shadcn@4.20.0 add @coss/button @coss/card @coss/avatar @coss/dialog @coss/input @coss/tabs sidebar --yes
+
