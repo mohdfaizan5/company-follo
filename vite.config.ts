@@ -11,6 +11,16 @@ import neon from './neon-vite-plugin.ts'
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
+  build: {
+    rolldownOptions: {
+      // Base UI ships 'use client' directives for React Server Components. This app doesn't use RSC, so the
+      // bundler can't keep them and warns hundreds of times. Hide only that warning; everything else still logs.
+      onLog(level, log, defaultHandler) {
+        if (log.code === 'MODULE_LEVEL_DIRECTIVE') return
+        defaultHandler(level, log)
+      },
+    },
+  },
   plugins: [
     devtools(),
     nitro(),

@@ -16,13 +16,16 @@ export const Route = createFileRoute('/api/docs')({
     POST: async ({ request }) => {
       const scope = await requireCompanyAccess(request, 'docs', 'write')
       if ('error' in scope) return scope.error
-      const body = await request.json().catch(() => null) as { title?: string; kind?: string } | null
+      const body = await request.json().catch(() => null) as { title?: string; kind?: string; content?: unknown } | null
       const title = body?.title?.trim().slice(0, 160) || 'Untitled'
       const kind = ['general', 'policy', 'sop', 'guide'].includes(body?.kind ?? '') ? body!.kind! : 'general'
       const slug = `${slugify(title)}-${crypto.randomUUID().slice(0, 8)}`
+      // Optional starter content (used by the templates on the Docs page); must be a TipTap doc.
+      const starter = body?.content && typeof body.content === 'object' && (body.content as { type?: string }).type === 'doc' ? JSON.stringify(body.content) : null
+      if (starter && starter.length > 200_000) return apiJson({ error: 'That template is too large.' }, 413)
       const [document] = await scope.sql`
-        INSERT INTO handbook_documents (organization_id, company_id, title, slug, kind, created_by_user_id)
-        VALUES (${scope.company.organization_id}, ${scope.company.company_id}, ${title}, ${slug}, ${kind}, ${scope.userId})
+        INSERT INTO handbook_documents (organization_id, company_id, title, slug, kind, created_by_user_id, content)
+        VALUES (${scope.company.organization_id}, ${scope.company.company_id}, ${title}, ${slug}, ${kind}, ${scope.userId}, COALESCE(${starter}::jsonb, '{"type":"doc","content":[{"type":"paragraph"}]}'::jsonb))
         RETURNING id, title, slug, kind, visibility, status, content, updated_at
       `
       if (!scope.company.public_slug) {

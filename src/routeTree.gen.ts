@@ -35,8 +35,12 @@ import { Route as DashboardDocsIndexRouteImport } from './routes/dashboard/docs/
 import { Route as DashboardDocsDocumentIdRouteImport } from './routes/dashboard/docs/$documentId'
 import { Route as DashboardPeopleIndexRouteImport } from './routes/dashboard/people/index'
 import { Route as DashboardPeoplePersonIdRouteImport } from './routes/dashboard/people.$personId'
+import { Route as DashboardPeopleNewRouteImport } from './routes/dashboard/people/new'
 import { Route as HandbookCompanySlugDocumentSlugRouteImport } from './routes/handbook/$companySlug/$documentSlug'
 import { Route as ApiHandbookCompanySlugDocumentSlugRouteImport } from './routes/api/handbook/$companySlug/$documentSlug'
+import { Route as ApiPeoplePersonIdPhotoRouteImport } from './routes/api/people/$personId/photo'
+import { Route as ApiPeoplePersonIdRecordsRouteImport } from './routes/api/people/$personId/records'
+import { Route as DashboardPeoplePersonIdEditRouteImport } from './routes/dashboard/people.$personId_.edit'
 import { Route as ApiPeoplePersonIdFilesDocumentIdRouteImport } from './routes/api/people/$personId/files/$documentId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -169,6 +173,11 @@ const DashboardPeoplePersonIdRoute = DashboardPeoplePersonIdRouteImport.update({
   path: '/dashboard/people/$personId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardPeopleNewRoute = DashboardPeopleNewRouteImport.update({
+  id: '/dashboard/people/new',
+  path: '/dashboard/people/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HandbookCompanySlugDocumentSlugRoute =
   HandbookCompanySlugDocumentSlugRouteImport.update({
     id: '/handbook/$companySlug/$documentSlug',
@@ -179,6 +188,23 @@ const ApiHandbookCompanySlugDocumentSlugRoute =
   ApiHandbookCompanySlugDocumentSlugRouteImport.update({
     id: '/api/handbook/$companySlug/$documentSlug',
     path: '/api/handbook/$companySlug/$documentSlug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPeoplePersonIdPhotoRoute = ApiPeoplePersonIdPhotoRouteImport.update({
+  id: '/photo',
+  path: '/photo',
+  getParentRoute: () => ApiPeoplePersonIdRoute,
+} as any)
+const ApiPeoplePersonIdRecordsRoute =
+  ApiPeoplePersonIdRecordsRouteImport.update({
+    id: '/records',
+    path: '/records',
+    getParentRoute: () => ApiPeoplePersonIdRoute,
+  } as any)
+const DashboardPeoplePersonIdEditRoute =
+  DashboardPeoplePersonIdEditRouteImport.update({
+    id: '/dashboard/people/$personId_/edit',
+    path: '/dashboard/people/$personId/edit',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPeoplePersonIdFilesDocumentIdRoute =
@@ -213,10 +239,14 @@ export interface FileRoutesByFullPath {
   '/api/people/$personId': typeof ApiPeoplePersonIdRouteWithChildren
   '/dashboard/docs/$documentId': typeof DashboardDocsDocumentIdRoute
   '/dashboard/people/$personId': typeof DashboardPeoplePersonIdRoute
+  '/dashboard/people/new': typeof DashboardPeopleNewRoute
   '/handbook/$companySlug/$documentSlug': typeof HandbookCompanySlugDocumentSlugRoute
   '/dashboard/docs/': typeof DashboardDocsIndexRoute
   '/dashboard/people/': typeof DashboardPeopleIndexRoute
   '/api/handbook/$companySlug/$documentSlug': typeof ApiHandbookCompanySlugDocumentSlugRoute
+  '/api/people/$personId/photo': typeof ApiPeoplePersonIdPhotoRoute
+  '/api/people/$personId/records': typeof ApiPeoplePersonIdRecordsRoute
+  '/dashboard/people/$personId/edit': typeof DashboardPeoplePersonIdEditRoute
   '/api/people/$personId/files/$documentId': typeof ApiPeoplePersonIdFilesDocumentIdRoute
 }
 export interface FileRoutesByTo {
@@ -244,10 +274,14 @@ export interface FileRoutesByTo {
   '/api/people/$personId': typeof ApiPeoplePersonIdRouteWithChildren
   '/dashboard/docs/$documentId': typeof DashboardDocsDocumentIdRoute
   '/dashboard/people/$personId': typeof DashboardPeoplePersonIdRoute
+  '/dashboard/people/new': typeof DashboardPeopleNewRoute
   '/handbook/$companySlug/$documentSlug': typeof HandbookCompanySlugDocumentSlugRoute
   '/dashboard/docs': typeof DashboardDocsIndexRoute
   '/dashboard/people': typeof DashboardPeopleIndexRoute
   '/api/handbook/$companySlug/$documentSlug': typeof ApiHandbookCompanySlugDocumentSlugRoute
+  '/api/people/$personId/photo': typeof ApiPeoplePersonIdPhotoRoute
+  '/api/people/$personId/records': typeof ApiPeoplePersonIdRecordsRoute
+  '/dashboard/people/$personId/edit': typeof DashboardPeoplePersonIdEditRoute
   '/api/people/$personId/files/$documentId': typeof ApiPeoplePersonIdFilesDocumentIdRoute
 }
 export interface FileRoutesById {
@@ -276,10 +310,14 @@ export interface FileRoutesById {
   '/api/people/$personId': typeof ApiPeoplePersonIdRouteWithChildren
   '/dashboard/docs/$documentId': typeof DashboardDocsDocumentIdRoute
   '/dashboard/people/$personId': typeof DashboardPeoplePersonIdRoute
+  '/dashboard/people/new': typeof DashboardPeopleNewRoute
   '/handbook/$companySlug/$documentSlug': typeof HandbookCompanySlugDocumentSlugRoute
   '/dashboard/docs/': typeof DashboardDocsIndexRoute
   '/dashboard/people/': typeof DashboardPeopleIndexRoute
   '/api/handbook/$companySlug/$documentSlug': typeof ApiHandbookCompanySlugDocumentSlugRoute
+  '/api/people/$personId/photo': typeof ApiPeoplePersonIdPhotoRoute
+  '/api/people/$personId/records': typeof ApiPeoplePersonIdRecordsRoute
+  '/dashboard/people/$personId_/edit': typeof DashboardPeoplePersonIdEditRoute
   '/api/people/$personId/files/$documentId': typeof ApiPeoplePersonIdFilesDocumentIdRoute
 }
 export interface FileRouteTypes {
@@ -309,10 +347,14 @@ export interface FileRouteTypes {
     | '/api/people/$personId'
     | '/dashboard/docs/$documentId'
     | '/dashboard/people/$personId'
+    | '/dashboard/people/new'
     | '/handbook/$companySlug/$documentSlug'
     | '/dashboard/docs/'
     | '/dashboard/people/'
     | '/api/handbook/$companySlug/$documentSlug'
+    | '/api/people/$personId/photo'
+    | '/api/people/$personId/records'
+    | '/dashboard/people/$personId/edit'
     | '/api/people/$personId/files/$documentId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -340,10 +382,14 @@ export interface FileRouteTypes {
     | '/api/people/$personId'
     | '/dashboard/docs/$documentId'
     | '/dashboard/people/$personId'
+    | '/dashboard/people/new'
     | '/handbook/$companySlug/$documentSlug'
     | '/dashboard/docs'
     | '/dashboard/people'
     | '/api/handbook/$companySlug/$documentSlug'
+    | '/api/people/$personId/photo'
+    | '/api/people/$personId/records'
+    | '/dashboard/people/$personId/edit'
     | '/api/people/$personId/files/$documentId'
   id:
     | '__root__'
@@ -371,10 +417,14 @@ export interface FileRouteTypes {
     | '/api/people/$personId'
     | '/dashboard/docs/$documentId'
     | '/dashboard/people/$personId'
+    | '/dashboard/people/new'
     | '/handbook/$companySlug/$documentSlug'
     | '/dashboard/docs/'
     | '/dashboard/people/'
     | '/api/handbook/$companySlug/$documentSlug'
+    | '/api/people/$personId/photo'
+    | '/api/people/$personId/records'
+    | '/dashboard/people/$personId_/edit'
     | '/api/people/$personId/files/$documentId'
   fileRoutesById: FileRoutesById
 }
@@ -400,10 +450,12 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   DashboardDocsDocumentIdRoute: typeof DashboardDocsDocumentIdRoute
   DashboardPeoplePersonIdRoute: typeof DashboardPeoplePersonIdRoute
+  DashboardPeopleNewRoute: typeof DashboardPeopleNewRoute
   HandbookCompanySlugDocumentSlugRoute: typeof HandbookCompanySlugDocumentSlugRoute
   DashboardDocsIndexRoute: typeof DashboardDocsIndexRoute
   DashboardPeopleIndexRoute: typeof DashboardPeopleIndexRoute
   ApiHandbookCompanySlugDocumentSlugRoute: typeof ApiHandbookCompanySlugDocumentSlugRoute
+  DashboardPeoplePersonIdEditRoute: typeof DashboardPeoplePersonIdEditRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -590,6 +642,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardPeoplePersonIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/people/new': {
+      id: '/dashboard/people/new'
+      path: '/dashboard/people/new'
+      fullPath: '/dashboard/people/new'
+      preLoaderRoute: typeof DashboardPeopleNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/handbook/$companySlug/$documentSlug': {
       id: '/handbook/$companySlug/$documentSlug'
       path: '/handbook/$companySlug/$documentSlug'
@@ -602,6 +661,27 @@ declare module '@tanstack/react-router' {
       path: '/api/handbook/$companySlug/$documentSlug'
       fullPath: '/api/handbook/$companySlug/$documentSlug'
       preLoaderRoute: typeof ApiHandbookCompanySlugDocumentSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/people/$personId/photo': {
+      id: '/api/people/$personId/photo'
+      path: '/photo'
+      fullPath: '/api/people/$personId/photo'
+      preLoaderRoute: typeof ApiPeoplePersonIdPhotoRouteImport
+      parentRoute: typeof ApiPeoplePersonIdRoute
+    }
+    '/api/people/$personId/records': {
+      id: '/api/people/$personId/records'
+      path: '/records'
+      fullPath: '/api/people/$personId/records'
+      preLoaderRoute: typeof ApiPeoplePersonIdRecordsRouteImport
+      parentRoute: typeof ApiPeoplePersonIdRoute
+    }
+    '/dashboard/people/$personId_/edit': {
+      id: '/dashboard/people/$personId_/edit'
+      path: '/dashboard/people/$personId/edit'
+      fullPath: '/dashboard/people/$personId/edit'
+      preLoaderRoute: typeof DashboardPeoplePersonIdEditRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/people/$personId/files/$documentId': {
@@ -638,10 +718,14 @@ const ApiInvitationsRouteWithChildren = ApiInvitationsRoute._addFileChildren(
 )
 
 interface ApiPeoplePersonIdRouteChildren {
+  ApiPeoplePersonIdPhotoRoute: typeof ApiPeoplePersonIdPhotoRoute
+  ApiPeoplePersonIdRecordsRoute: typeof ApiPeoplePersonIdRecordsRoute
   ApiPeoplePersonIdFilesDocumentIdRoute: typeof ApiPeoplePersonIdFilesDocumentIdRoute
 }
 
 const ApiPeoplePersonIdRouteChildren: ApiPeoplePersonIdRouteChildren = {
+  ApiPeoplePersonIdPhotoRoute: ApiPeoplePersonIdPhotoRoute,
+  ApiPeoplePersonIdRecordsRoute: ApiPeoplePersonIdRecordsRoute,
   ApiPeoplePersonIdFilesDocumentIdRoute: ApiPeoplePersonIdFilesDocumentIdRoute,
 }
 
@@ -682,11 +766,13 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   DashboardDocsDocumentIdRoute: DashboardDocsDocumentIdRoute,
   DashboardPeoplePersonIdRoute: DashboardPeoplePersonIdRoute,
+  DashboardPeopleNewRoute: DashboardPeopleNewRoute,
   HandbookCompanySlugDocumentSlugRoute: HandbookCompanySlugDocumentSlugRoute,
   DashboardDocsIndexRoute: DashboardDocsIndexRoute,
   DashboardPeopleIndexRoute: DashboardPeopleIndexRoute,
   ApiHandbookCompanySlugDocumentSlugRoute:
     ApiHandbookCompanySlugDocumentSlugRoute,
+  DashboardPeoplePersonIdEditRoute: DashboardPeoplePersonIdEditRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

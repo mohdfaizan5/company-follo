@@ -1,7 +1,8 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useId, useState } from 'react'
-import { ArrowRight, CalendarDays, Plus } from 'lucide-react'
+import { EmptyState } from '#/components/empty-state'
+import { ArrowRight, CalendarDays, CircleDollarSign, Plus } from 'lucide-react'
 import { DashboardPage } from '#/components/dashboard-page'
 import { Button } from '#/components/ui/button'
 import {
@@ -143,25 +144,18 @@ function PaymentsContent() {
             </p>
           ) : null}
           {payments.data && !payments.data.length ? (
-            <div className="py-6">
-              <p className="text-sm text-muted-foreground">
-                No payments recorded yet.
-              </p>
+            <EmptyState
+              icon={CircleDollarSign}
+              title="No payments recorded yet"
+              description={people.data?.length ? 'Use “Add payment” to create the first record.' : 'Add a person to your team before recording a payment.'}
+            >
               {!people.data?.length ? (
-                <Button
-                  className="mt-4"
-                  variant="outline"
-                  render={<Link to="/dashboard/people" />}
-                >
+                <Button variant="outline" render={<Link to="/dashboard/people" />}>
                   Add a person first
                   <ArrowRight data-icon="inline-end" />
                 </Button>
-              ) : (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Use “Add payment” to create the first record.
-                </p>
-              )}
-            </div>
+              ) : null}
+            </EmptyState>
           ) : null}
           {payments.data?.length ? (
             <div className="overflow-x-auto">
