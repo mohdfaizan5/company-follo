@@ -1,5 +1,6 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
+import { EmptyState } from '#/components/empty-state'
 import { ArrowRight, CalendarDays, CircleDollarSign, Users } from 'lucide-react'
 import { DashboardPage } from '#/components/dashboard-page'
 import { Button } from '#/components/ui/button'
@@ -59,7 +60,7 @@ function OverviewContent() {
       {can?.people.read && <Card>
         <CardHeader><CardTitle>Recently added people</CardTitle><CardDescription>The latest people in your company.</CardDescription></CardHeader>
         <CardContent>
-          {data.recentPeople.length ? <div className="divide-y divide-border">{data.recentPeople.map((person) => <Link key={person.id} to="/dashboard/people/$personId" params={{ personId: person.id }} className="flex min-h-12 items-center justify-between gap-3 py-2 text-sm no-underline transition-colors duration-150 hover:text-primary"><span><span className="block font-medium">{person.first_name} {person.last_name}</span><span className="block text-xs text-muted-foreground">{person.title}</span></span><ArrowRight className="size-4 text-muted-foreground" /></Link>)}</div> : <div className="py-5"><p className="text-sm text-muted-foreground">Your team is empty. Add the first person to start their record.</p><Button className="mt-4" render={<Link to="/dashboard/people" />}>Open People<ArrowRight data-icon="inline-end" /></Button></div>}
+          {data.recentPeople.length ? <div className="divide-y divide-border">{data.recentPeople.map((person) => <Link key={person.id} to="/dashboard/people/$personId" params={{ personId: person.id }} className="flex min-h-12 items-center justify-between gap-3 py-2 text-sm no-underline transition-colors duration-150 hover:text-primary"><span><span className="block font-medium">{person.first_name} {person.last_name}</span><span className="block text-xs text-muted-foreground">{person.title}</span></span><ArrowRight className="size-4 text-muted-foreground" /></Link>)}</div> : <EmptyState icon={Users} title="Your team is empty" description="Add the first person to start their record."><Button render={<Link to="/dashboard/people" />}>Open People<ArrowRight data-icon="inline-end" /></Button></EmptyState>}
         </CardContent>
       </Card>}
       <Card>

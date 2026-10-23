@@ -1,8 +1,9 @@
+import { EmptyState } from '#/components/empty-state'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Handle, Position, ReactFlow, ReactFlowProvider, useReactFlow } from '@xyflow/react'
 import type { Edge, Node, NodeProps } from '@xyflow/react'
-import { ChevronDown, ExternalLink } from 'lucide-react'
+import { ChevronDown, ExternalLink, Network } from 'lucide-react'
 import { Avatar, AvatarFallback } from '#/components/ui/avatar'
 import { Badge } from '#/components/ui/badge'
 import { personName } from '#/lib/people-client'
@@ -106,6 +107,6 @@ function FlowTree({ people }: { people: Person[] }) {
 }
 
 export function ReportingTree({ people }: { people: Person[] }) {
-  if (!people.length) return <p className="py-10 text-center text-sm text-muted-foreground">Your reporting tree will appear when you add your first person.</p>
+  if (!people.length) return <EmptyState icon={Network} title="No reporting tree yet" description="Add your first person and the tree builds itself as you set who reports to whom." />
   return <div><div className="mb-3"><Badge variant="outline">{people.length} people</Badge></div><ReactFlowProvider><FlowTree people={people} /></ReactFlowProvider></div>
 }

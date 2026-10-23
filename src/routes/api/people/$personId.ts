@@ -35,7 +35,9 @@ export const Route = createFileRoute('/api/people/$personId')({
           sql`SELECT id, kind, file_name, display_name, created_at FROM documents WHERE person_id = ${person.id} AND organization_id = ${person.organization_id} ORDER BY created_at DESC`,
         ])
         const canWritePeople = await hasCompanyPermission(scope, 'people', 'write')
-        return json({ person, compensation, payments, expenses, documents, uploadsEnabled: Boolean(process.env.UPLOADTHING_TOKEN) && canWritePeople, canWritePeople, payrollAllowed, expensesAllowed })
+        const invitationRow = (await sql`SELECT expires_at, accepted_at FROM person_invitations WHERE person_id = ${person.id} AND company_id = ${scope.company.company_id}`).at(0)
+        const invitation = !invitationRow ? 'none' : invitationRow.accepted_at ? 'accepted' : new Date(invitationRow.expires_at) < new Date() ? 'expired' : 'pending'
+        return json({ person, invitation, compensation, payments, expenses, documents, uploadsEnabled: Boolean(process.env.UPLOADTHING_TOKEN) && canWritePeople, canWritePeople, payrollAllowed, expensesAllowed })
       },
       PATCH: async ({ request, params }) => {
         const scope = await requireCompanyAccess(request, 'people', 'write')
@@ -50,7 +52,7 @@ export const Route = createFileRoute('/api/people/$personId')({
         `).at(0)
         if (!person) return json({ error: 'Person not found.' }, 404)
 
-        const body = await request.json().catch(() => null) as { name?: string; title?: string; email?: string; phone?: string; personalEmail?: string; address?: string; notes?: string; department?: string; level?: string; startDate?: string } | null
+        const body = await request.json().catch(() => null) as { name?: string; title?: string; email?: string; phone?: string; personalEmail?: string; address?: string; notes?: string; department?: string; level?: string; startDate?: string; managerEmploymentId?: string | null } | null
         const name = body?.name?.trim()
         const title = body?.title?.trim()
         if (!name || !title) return json({ error: 'Name and role are required.' }, 400)
@@ -59,6 +61,26 @@ export const Route = createFileRoute('/api/people/$personId')({
         const personalEmail = body?.personalEmail?.trim().toLowerCase() || null
         if (personalEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personalEmail)) return json({ error: 'Enter a valid personal email.' }, 400)
         if (!body?.startDate || !/^\d{4}-\d{2}-\d{2}$/.test(body.startDate) || Number.isNaN(Date.parse(body.startDate))) return json({ error: 'Enter a valid joining date.' }, 400)
+        // Only touch the manager when the client sent the field, so partial edits (like saving a note) keep the reporting line.
+        if (body && 'managerEmploymentId' in body) {
+          const managerId = body.managerEmploymentId || null
+          if (managerId) {
+            if (!/^[0-9a-f-]{36}$/i.test(managerId)) return json({ error: 'Choose a person from this company as manager.' }, 400)
+            if (managerId === person.employment_id) return json({ error: 'A person cannot report to themselves.' }, 400)
+            const manager = (await sql`SELECT id FROM employments WHERE id = ${managerId}::uuid AND company_id = ${scope.company.company_id} AND status <> 'ended'`).at(0)
+            if (!manager) return json({ error: 'Choose a person from this company as manager.' }, 400)
+            // Walk up from the proposed manager; if we reach this person, the change would create a reporting loop.
+            const loop = (await sql`
+              WITH RECURSIVE chain AS (
+                SELECT id, manager_employment_id FROM employments WHERE id = ${managerId}::uuid
+                UNION
+                SELECT e.id, e.manager_employment_id FROM employments e JOIN chain c ON e.id = c.manager_employment_id
+              ) SELECT 1 FROM chain WHERE id = ${person.employment_id}::uuid LIMIT 1
+            `).at(0)
+            if (loop) return json({ error: 'That would create a reporting loop.' }, 400)
+          }
+          await sql`UPDATE employments SET manager_employment_id = ${managerId}::uuid, updated_at = now() WHERE id = ${person.employment_id}`
+        }
         const [firstName, ...lastName] = name.split(/\s+/)
         try {
           await sql`
