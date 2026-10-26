@@ -5,7 +5,8 @@ import {
   createRootRouteWithContext,
   useRouterState,
 } from '@tanstack/react-router'
-import { CompanyFolloShell } from '../components/companyfollo-shell'
+import { useEffect } from 'react'
+import { CompanyFolloShell } from '../components/dashboard-shell'
 import { TooltipProvider } from '../components/ui/tooltip'
 
 import appCss from '../styles.css?url'
@@ -32,6 +33,11 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     ],
     links: [
       {
+        rel: 'icon',
+        type: 'image/svg+xml',
+        href: '/logo.svg',
+      },
+      {
         rel: 'stylesheet',
         href: appCss,
       },
@@ -42,8 +48,22 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 })
 
 function AppRoot() {
-  const pathname = useRouterState({ select: (state) => state.location.pathname })
-  return pathname.startsWith('/dashboard') ? <CompanyFolloShell><Outlet /></CompanyFolloShell> : <Outlet />
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      void import('react-grab')
+    }
+  }, [])
+
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  })
+  return pathname.startsWith('/dashboard') ? (
+    <CompanyFolloShell>
+      <Outlet />
+    </CompanyFolloShell>
+  ) : (
+    <Outlet />
+  )
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
@@ -52,7 +72,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body className="font-sans antialiased [overflow-wrap:anywhere]" suppressHydrationWarning>
+      <body
+        className="font-sans antialiased [overflow-wrap:anywhere]"
+        suppressHydrationWarning
+      >
         <TooltipProvider>
           {children}
           <Scripts />

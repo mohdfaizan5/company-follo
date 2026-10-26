@@ -167,3 +167,168 @@ button, a, input { -webkit-tap-highlight-color: transparent; }
   --warning: var(--color-amber-500);
   --warning-foreground: var(--color-amber-400);
 }
+/* Reporting tree: nested lists joined by thin connector lines. */
+.org-tree {
+  --org-line: color-mix(in srgb, var(--muted-foreground) 45%, transparent);
+}
+.org-tree ul {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding-top: 1.5rem;
+}
+.org-tree li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem 0.5rem 0;
+}
+.org-tree li::before,
+.org-tree li::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 50%;
+  width: 50%;
+  height: 1.5rem;
+  border-top: 1px solid var(--org-line);
+}
+.org-tree li::after {
+  right: auto;
+  left: 50%;
+  border-left: 1px solid var(--org-line);
+}
+.org-tree li:only-child::before,
+.org-tree li:only-child::after {
+  display: none;
+}
+.org-tree li:only-child {
+  padding-top: 0;
+}
+.org-tree li:first-child::before,
+.org-tree li:last-child::after {
+  border: 0 none;
+}
+.org-tree li:last-child::before {
+  border-right: 1px solid var(--org-line);
+  border-top-right-radius: 0.5rem;
+}
+.org-tree li:first-child::after {
+  border-top-left-radius: 0.5rem;
+}
+.org-tree ul ul::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 1.5rem;
+  border-left: 1px solid var(--org-line);
+}
+/* Top-level people (no manager) sit side by side without a shared line. */
+.org-tree > ul {
+  padding-top: 0;
+  gap: 2rem;
+}
+.org-tree > ul > li {
+  padding-top: 0;
+}
+.org-tree > ul > li::before,
+.org-tree > ul > li::after {
+  display: none;
+}
+
+/* Document typography, shared by the editor (.ProseMirror) and the read-only / public view (.doc-body).
+   The leading `html` lifts these just above the block editor's own `.block-editor-content .ProseMirror …` rules. */
+html .doc-content :is(.ProseMirror, .doc-body) {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: color-mix(in srgb, var(--foreground) 88%, transparent);
+}
+html .doc-content :is(.ProseMirror, .doc-body) > :first-child {
+  margin-top: 0;
+}
+html .doc-content :is(.ProseMirror, .doc-body) p {
+  margin: 0.75em 0;
+  line-height: 1.75;
+}
+html .doc-content :is(.ProseMirror, .doc-body) :is(h1, h2, h3) {
+  color: var(--foreground);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+html .doc-content :is(.ProseMirror, .doc-body) h1 {
+  font-size: 1.875rem;
+  line-height: 1.25;
+  margin: 1.75em 0 0.6em;
+}
+html .doc-content :is(.ProseMirror, .doc-body) h2 {
+  font-size: 1.375rem;
+  line-height: 1.35;
+  margin: 1.75em 0 0.5em;
+}
+html .doc-content :is(.ProseMirror, .doc-body) h3 {
+  font-size: 1.125rem;
+  line-height: 1.4;
+  margin: 1.5em 0 0.4em;
+}
+html .doc-content :is(.ProseMirror, .doc-body) :is(ul, ol) {
+  margin: 0.75em 0;
+  padding-left: 1.5rem;
+}
+html .doc-content :is(.ProseMirror, .doc-body) ul {
+  list-style: disc;
+}
+html .doc-content :is(.ProseMirror, .doc-body) ol {
+  list-style: decimal;
+}
+html .doc-content :is(.ProseMirror, .doc-body) li {
+  margin: 0.35em 0;
+  padding-left: 0.25rem;
+}
+html .doc-content :is(.ProseMirror, .doc-body) li::marker {
+  color: var(--muted-foreground);
+}
+html .doc-content :is(.ProseMirror, .doc-body) li > p {
+  margin: 0;
+}
+html .doc-content :is(.ProseMirror, .doc-body) blockquote {
+  margin: 1.25em 0;
+  padding-left: 1rem;
+  border-left: 2px solid var(--border);
+  color: var(--muted-foreground);
+}
+html .doc-content :is(.ProseMirror, .doc-body) pre {
+  margin: 1.25em 0;
+  padding: 0.875rem 1rem;
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  background: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+html .doc-content :is(.ProseMirror, .doc-body) :not(pre) > code {
+  padding: 0.125em 0.375em;
+  border-radius: 0.25rem;
+  background: var(--muted);
+  font-size: 0.875em;
+}
+html .doc-content :is(.ProseMirror, .doc-body) a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+html .doc-content :is(.ProseMirror, .doc-body) strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+html .doc-content :is(.ProseMirror, .doc-body) hr {
+  margin: 2em 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+html .doc-content :is(.ProseMirror, .doc-body) mark {
+  border-radius: 0.2em;
+  background: color-mix(in srgb, var(--color-amber-400) 30%, transparent);
+  color: inherit;
+}

@@ -63,7 +63,7 @@ function AddPerson() {
   const managerItems = [{ label: 'No manager', value: '' }, ...(people.data ?? []).map((person) => ({ label: personName(person), value: person.employment_id }))]
 
   return (
-    <DashboardPage title="Add a person" showHeading={false}>
+    <DashboardPage title="Add a person" showHeading={false} skeleton="form">
       {workspace.data && !workspace.data.permissions.people.write ? <NotFoundPage /> : (
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-10">
           <div className="flex flex-col gap-6">

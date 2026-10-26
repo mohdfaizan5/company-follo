@@ -7,9 +7,11 @@ export const Route = createFileRoute('/api/docs')({
       const scope = await requireCompanyAccess(request, 'docs', 'read')
       if ('error' in scope) return scope.error
       const documents = await scope.sql`
-        SELECT id, title, slug, kind, visibility, status, updated_at
-        FROM handbook_documents WHERE company_id = ${scope.company.company_id}
-        ORDER BY updated_at DESC
+        SELECT d.id, d.title, d.slug, d.kind, d.visibility, d.status, d.created_at, d.updated_at,
+               u.name AS owner_name, u.image AS owner_image
+        FROM handbook_documents d LEFT JOIN "user" u ON u.id = d.created_by_user_id
+        WHERE d.company_id = ${scope.company.company_id}
+        ORDER BY d.updated_at DESC
       `
       return apiJson({ documents, companySlug: scope.company.public_slug })
     },

@@ -6,6 +6,9 @@ export type Workspace = {
   company_id: string
   company_name: string
   default_currency: 'INR' | 'USD'
+  /** 0 = Sunday … 6 = Saturday */
+  working_days: number[]
+  logo_url?: string | null
   role: 'owner' | 'hr_admin' | 'employee'
   permissions: Record<'overview' | 'people' | 'calendar' | 'docs' | 'payroll' | 'expenses', { read: boolean; write: boolean }>
 }

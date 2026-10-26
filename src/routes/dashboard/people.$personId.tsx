@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { CalendarDays, CircleDollarSign, Ellipsis, Mail, Network, Pencil, Plus, Receipt, Send, UserRound, Users, Wallet, X } from 'lucide-react'
 import { DashboardPage } from '#/components/dashboard-page'
+import { ProfileSkeleton } from '#/components/page-skeletons'
 import { EmployeeDocumentUpload, EmployeePhotoUpload } from '#/components/employee-uploads'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
 import { Badge } from '#/components/ui/badge'
@@ -38,7 +39,7 @@ export const Route = createFileRoute('/dashboard/people/$personId')({
 
 function PersonProfile() {
   const { personId } = Route.useParams()
-  return <DashboardPage title="Person profile" showHeading={false}><ProfileContent personId={personId} /></DashboardPage>
+  return <DashboardPage title="Person profile" showHeading={false} skeleton="profile"><ProfileContent personId={personId} /></DashboardPage>
 }
 
 const invitationLabel: Record<Invitation, string> = { none: 'Not invited yet', pending: 'Invite sent', accepted: 'Joined the workspace', expired: 'Invite expired' }
@@ -55,7 +56,7 @@ function ProfileContent({ personId }: { personId: string }) {
   const profile = useQuery({ queryKey: ['person', personId], queryFn: () => getPersonProfile(personId), staleTime: 60_000 })
   const workspace = useWorkspace(true)
   const [inviteOpen, setInviteOpen] = useState(false)
-  if (profile.isPending) return <p className="text-sm text-muted-foreground">Loading profile…</p>
+  if (profile.isPending) return <ProfileSkeleton />
   if (profile.isError) return <p className="text-sm text-destructive">{profile.error.message}</p>
   const { person, invitation, compensation, payments, expenses, documents, uploadsEnabled, canWritePeople, payrollAllowed, expensesAllowed } = profile.data
   const name = personName(person)

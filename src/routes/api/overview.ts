@@ -16,17 +16,17 @@ export const Route = createFileRoute('/api/overview')({
           hasCompanyPermission(scope, 'people', 'read'), hasCompanyPermission(scope, 'calendar', 'read'), hasCompanyPermission(scope, 'payroll', 'read'),
         ])
 
-        const [people, pendingLeave, payments, recentPeople] = await Promise.all([
-          canReadPeople ? sql`SELECT COUNT(*)::int AS count FROM employments WHERE company_id = ${scope.company.company_id} AND status <> 'ended'` : Promise.resolve([]),
-          canReadCalendar ? sql`SELECT COUNT(*)::int AS count FROM leave_requests lr JOIN employments e ON e.id = lr.employment_id WHERE e.company_id = ${scope.company.company_id} AND lr.status = 'pending'` : Promise.resolve([]),
-          canReadPayroll ? sql`SELECT COUNT(*)::int AS count FROM payments pay JOIN employments e ON e.id = pay.employment_id WHERE e.company_id = ${scope.company.company_id} AND pay.created_at >= date_trunc('month', now())` : Promise.resolve([]),
-          canReadPeople ? sql`SELECT p.id, p.first_name, p.last_name, e.title FROM employments e JOIN people p ON p.id = e.person_id WHERE e.company_id = ${scope.company.company_id} AND e.status <> 'ended' ORDER BY e.created_at DESC LIMIT 5` : Promise.resolve([]),
-        ])
+        const companyId = scope.company.company_id
+        const row = (await sql`SELECT
+          CASE WHEN ${canReadPeople}::boolean THEN (SELECT COUNT(*)::int FROM employments WHERE company_id = ${companyId} AND status <> 'ended') ELSE 0 END AS people_count,
+          CASE WHEN ${canReadCalendar}::boolean THEN (SELECT COUNT(*)::int FROM leave_requests lr JOIN employments e ON e.id = lr.employment_id WHERE e.company_id = ${companyId} AND lr.status = 'pending') ELSE 0 END AS pending_leave_count,
+          CASE WHEN ${canReadPayroll}::boolean THEN (SELECT COUNT(*)::int FROM payments pay JOIN employments e ON e.id = pay.employment_id WHERE e.company_id = ${companyId} AND pay.created_at >= date_trunc('month', now())) ELSE 0 END AS payments_count,
+          CASE WHEN ${canReadPeople}::boolean THEN (SELECT COALESCE(json_agg(r), '[]'::json) FROM (SELECT p.id, p.first_name, p.last_name, e.title FROM employments e JOIN people p ON p.id = e.person_id WHERE e.company_id = ${companyId} AND e.status <> 'ended' ORDER BY e.created_at DESC LIMIT 5) r) ELSE '[]'::json END AS recent_people`).at(0)
         return json({
-          peopleCount: people.at(0)?.count ?? 0,
-          pendingLeaveCount: pendingLeave.at(0)?.count ?? 0,
-          paymentsThisMonthCount: payments.at(0)?.count ?? 0,
-          recentPeople,
+          peopleCount: row?.people_count ?? 0,
+          pendingLeaveCount: row?.pending_leave_count ?? 0,
+          paymentsThisMonthCount: row?.payments_count ?? 0,
+          recentPeople: row?.recent_people ?? [],
         })
       },
     },

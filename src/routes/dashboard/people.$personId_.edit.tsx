@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Check, Users } from 'lucide-react'
 import { DashboardPage } from '#/components/dashboard-page'
+import { FormSkeleton } from '#/components/page-skeletons'
 import { EmployeePhotoActions } from '#/components/employee-uploads'
 import { NotFoundPage } from '#/components/not-found-page'
 import { SettingsRow, SettingsSection } from '#/components/settings-form'
@@ -33,13 +34,13 @@ export const Route = createFileRoute('/dashboard/people/$personId_/edit')({
 
 function EditPersonPage() {
   const { personId } = Route.useParams()
-  return <DashboardPage title="Edit details" showHeading={false}><EditContent personId={personId} /></DashboardPage>
+  return <DashboardPage title="Edit details" showHeading={false} skeleton="form"><EditContent personId={personId} /></DashboardPage>
 }
 
 function EditContent({ personId }: { personId: string }) {
   const profile = useQuery({ queryKey: ['person', personId], queryFn: () => getPersonProfile(personId), staleTime: 60_000 })
   const people = useQuery(peopleQueryOptions)
-  if (profile.isPending) return <p className="text-sm text-muted-foreground">Loading profile…</p>
+  if (profile.isPending) return <FormSkeleton />
   if (profile.isError) return <p className="text-sm text-destructive">{profile.error.message}</p>
   if (!profile.data.canWritePeople) return <NotFoundPage />
   return <EditForm data={profile.data} people={people.data ?? []} />

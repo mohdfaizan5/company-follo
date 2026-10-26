@@ -12,9 +12,17 @@ export const Route = createFileRoute('/api/people')({
         const context = await requireCompanyAccess(request, 'people', 'read')
         if ('error' in context) return context.error
         const people = await context.sql`
-          SELECT p.id, p.first_name, p.last_name, p.work_email, p.phone_number,
+          SELECT p.id, p.first_name, p.last_name, p.work_email, p.phone_number, p.avatar_url,
                  e.id AS employment_id, e.title, e.department, e.level, e.start_date::text AS start_date, e.status,
-                 e.manager_employment_id
+                 e.manager_employment_id,
+                 (SELECT lp.category FROM leave_requests r JOIN leave_policies lp ON lp.id = r.leave_policy_id
+                   WHERE r.employment_id = e.id AND r.status = 'approved' AND CURRENT_DATE BETWEEN r.start_date AND r.end_date
+                   LIMIT 1) AS today_status,
+                 (SELECT CASE WHEN i.accepted_at IS NOT NULL THEN COALESCE(m.role::text, 'employee')
+                              WHEN i.expires_at > now() THEN 'invited' END
+                   FROM person_invitations i
+                   LEFT JOIN organization_memberships m ON m.app_user_id = i.accepted_by_user_id AND m.organization_id = i.organization_id
+                   WHERE i.person_id = p.id) AS access
           FROM employments e
           JOIN people p ON p.id = e.person_id
           WHERE e.company_id = ${context.company.company_id} AND e.status <> 'ended'

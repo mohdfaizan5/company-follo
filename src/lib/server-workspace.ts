@@ -22,7 +22,9 @@ export async function requireHrWorkspace(request: Request) {
   if (!sql) return { error: apiJson({ error: 'Database unavailable.' }, 503) }
   const company = (await sql`
     SELECT c.id AS company_id, c.organization_id, c.name AS company_name,
-           c.public_slug, m.id AS membership_id, m.role
+           c.public_slug, m.id AS membership_id, m.role,
+           (SELECT COALESCE(json_agg(json_build_object('resource', p.resource, 'can_read', p.can_read, 'can_write', p.can_write)), '[]'::json)
+             FROM company_role_permissions p WHERE p.company_id = c.id AND p.role = m.role) AS rules
     FROM organization_memberships m
     JOIN companies c ON c.organization_id = m.organization_id
     WHERE m.app_user_id = ${session.user.id}
@@ -35,8 +37,8 @@ export async function requireHrWorkspace(request: Request) {
 
 export async function hasCompanyPermission(scope: Awaited<ReturnType<typeof requireHrWorkspace>> & { error?: never }, resource: AccessResource, action: AccessAction) {
   if (scope.company.role === 'owner') return true
-  const rule = (await scope.sql`SELECT can_read, can_write FROM company_role_permissions
-    WHERE company_id = ${scope.company.company_id} AND role = ${scope.company.role}::companyfollo_member_role AND resource = ${resource}`).at(0)
+  const rules = scope.company.rules as { resource: string; can_read: boolean; can_write: boolean }[]
+  const rule = rules.find((row) => row.resource === resource)
   return rule ? Boolean(action === 'read' ? rule.can_read : rule.can_write) : defaultPermission(String(scope.company.role), resource)[action]
 }
 
@@ -46,7 +48,9 @@ export async function requireCompanyAccess(request: Request, resource: AccessRes
   const sql = await getClient()
   if (!sql) return { error: apiJson({ error: 'Database unavailable.' }, 503) }
   const company = (await sql`SELECT c.id AS company_id, c.organization_id, c.name AS company_name, c.public_slug,
-    m.id AS membership_id, m.role
+    m.id AS membership_id, m.role,
+    (SELECT COALESCE(json_agg(json_build_object('resource', p.resource, 'can_read', p.can_read, 'can_write', p.can_write)), '[]'::json)
+             FROM company_role_permissions p WHERE p.company_id = c.id AND p.role = m.role) AS rules
     FROM organization_memberships m JOIN companies c ON c.organization_id = m.organization_id
     WHERE m.app_user_id = ${session.user.id} ORDER BY c.created_at ASC LIMIT 1`).at(0)
   if (!company) return { error: apiJson({ error: 'Create a company first.' }, 409) }
@@ -65,4 +69,18 @@ export function validDate(value: string) {
 
 export function slugify(value: string) {
   return value.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80) || 'company'
+}
+
+/** Any member of the company, whatever their role or permissions. Used for a person's own data. */
+export async function requireMember(request: Request) {
+  const session = await auth.api.getSession({ headers: request.headers })
+  if (!session?.user) return { error: apiJson({ error: 'Sign in to continue.' }, 401) }
+  const sql = await getClient()
+  if (!sql) return { error: apiJson({ error: 'Database unavailable.' }, 503) }
+  const company = (await sql`SELECT c.id AS company_id, c.organization_id, c.name AS company_name, c.public_slug, c.logo_url,
+    c.default_currency, c.working_days, m.id AS membership_id, m.role
+    FROM organization_memberships m JOIN companies c ON c.organization_id = m.organization_id
+    WHERE m.app_user_id = ${session.user.id} ORDER BY c.created_at ASC LIMIT 1`).at(0)
+  if (!company) return { error: apiJson({ error: 'Create a company first.' }, 409) }
+  return { sql, company, userId: session.user.id, email: session.user.email }
 }

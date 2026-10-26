@@ -7,7 +7,6 @@ import viteReact, { reactCompilerPreset } from '@vitejs/plugin-react'
 import babel from '@rolldown/plugin-babel'
 import tailwindcss from '@tailwindcss/vite'
 import { nitro } from 'nitro/vite'
-import neon from './neon-vite-plugin.ts'
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
@@ -24,7 +23,6 @@ const config = defineConfig({
   plugins: [
     devtools(),
     nitro(),
-    neon,
     tailwindcss(),
     tanstackStart(),
     viteReact(),

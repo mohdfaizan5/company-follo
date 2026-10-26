@@ -1,19 +1,21 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { lazy, Suspense, useState } from 'react'
-import { Check, Copy, ExternalLink, Share2 } from 'lucide-react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { Check, Copy, ExternalLink, Globe, Lock, Share2 } from 'lucide-react'
 import type { JSONContent } from '@tiptap/core'
 import { DashboardPage } from '#/components/dashboard-page'
+import { DocSkeleton } from '#/components/page-skeletons'
 import { Button } from '#/components/ui/button'
-import { Input } from '#/components/ui/input'
 import { NativeSelect, NativeSelectOption } from '#/components/ui/native-select'
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '#/components/ui/breadcrumb'
-import { Dialog, DialogClose, DialogDescription, DialogFooter, DialogHeader, DialogPanel, DialogPopup, DialogTitle, DialogTrigger } from '#/components/ui/dialog'
+import { Dialog, DialogDescription, DialogHeader, DialogPanel, DialogPopup, DialogTitle, DialogTrigger } from '#/components/ui/dialog'
+import { Skeleton } from '#/components/ui/skeleton'
+import { Switch } from '#/components/ui/switch'
 import { useWorkspace } from '#/lib/workspace-client'
 import { HandbookContent } from '#/components/handbook-content'
 
 const HandbookEditor = lazy(() => import('#/components/handbook-editor').then((module) => ({ default: module.HandbookEditor })))
-type Doc = { id: string; title: string; slug: string; kind: string; visibility: string; status: string; content: JSONContent }
+type Doc = { id: string; title: string; slug: string; kind: string; visibility: string; status: string; content: JSONContent; updated_at?: string }
 async function getDoc(id: string) {
   const response = await fetch(`/api/docs/${id}`)
   const payload = await response.json() as { document?: Doc; companySlug?: string; error?: string }
@@ -26,60 +28,136 @@ function DocumentPage() {
   const { documentId } = Route.useParams()
   const query = useQuery({ queryKey: ['handbook-doc', documentId], queryFn: () => getDoc(documentId), staleTime: 30_000 })
   const workspace = useWorkspace(true)
-  return <DashboardPage title="Docs" showHeading={false}>
-    <Breadcrumb className="mb-10"><BreadcrumbList><BreadcrumbItem><BreadcrumbLink render={<Link to="/dashboard/docs" />}>Docs</BreadcrumbLink></BreadcrumbItem><BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbPage className="max-w-80 truncate">{query.data?.document.title ?? 'Document'}</BreadcrumbPage></BreadcrumbItem></BreadcrumbList></Breadcrumb>
-    {query.isPending && <p className="text-sm text-muted-foreground">Loading document…</p>}
+  return <DashboardPage title="Docs" showHeading={false} skeleton="doc">
+    {query.isPending && <DocSkeleton />}
     {query.isError && <p className="text-sm text-destructive">{query.error.message}</p>}
-    {query.data && (workspace.data?.permissions.docs.write ? <DocumentEditor key={query.data.document.id} initial={query.data.document} companySlug={query.data.companySlug} /> : <div className="mx-auto max-w-3xl"><h1 className="mb-8 text-4xl font-semibold tracking-[-0.045em] text-balance">{query.data.document.title}</h1><HandbookContent content={query.data.document.content} /></div>)}
+    {query.data && (workspace.data?.permissions.docs.write
+      ? <DocumentEditor key={query.data.document.id} initial={query.data.document} companySlug={query.data.companySlug} />
+      : <div className="mx-auto max-w-3xl"><DocBreadcrumb title={query.data.document.title} /><h1 className="mb-8 text-4xl font-semibold tracking-[-0.045em] text-balance">{query.data.document.title}</h1><HandbookContent content={query.data.document.content} /></div>)}
   </DashboardPage>
 }
 
+function DocBreadcrumb({ title, children }: { title: string; children?: React.ReactNode }) {
+  return <div className="mb-10 flex min-h-8 flex-wrap items-center justify-between gap-3">
+    <Breadcrumb><BreadcrumbList><BreadcrumbItem><BreadcrumbLink render={<Link to="/dashboard/docs" />}>Docs</BreadcrumbLink></BreadcrumbItem><BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbPage className="max-w-60 truncate">{title || 'Untitled'}</BreadcrumbPage></BreadcrumbItem></BreadcrumbList></Breadcrumb>
+    {children}
+  </div>
+}
+
+type Draft = { title: string; kind: string; visibility: string; status: string; content: JSONContent }
+
+/** Edits save automatically a moment after you stop typing; Publish only changes who can read it. */
 function DocumentEditor({ initial, companySlug }: { initial: Doc; companySlug?: string }) {
   const documentId = initial.id
   const queryClient = useQueryClient()
-  const [title, setTitle] = useState(initial.title)
-  const [kind, setKind] = useState(initial.kind)
-  const [visibility, setVisibility] = useState(initial.visibility)
-  const [status, setStatus] = useState(initial.status)
-  const [content, setContent] = useState<JSONContent>(initial.content)
+  const [draft, setDraft] = useState<Draft>({ title: initial.title === 'Untitled' ? '' : initial.title, kind: initial.kind, visibility: initial.visibility, status: initial.status, content: initial.content })
   const [dirty, setDirty] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [shareError, setShareError] = useState<string | null>(null)
+  const latest = useRef(draft)
+  latest.current = draft
   const save = useMutation({
-    mutationFn: async (nextStatus: string) => {
-      const response = await fetch(`/api/docs/${documentId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, kind, visibility, status: nextStatus, content }) })
+    mutationFn: async (next: Draft) => {
+      const response = await fetch(`/api/docs/${documentId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...next, title: next.title.trim() || 'Untitled' }) })
       const payload = await response.json() as { document?: Doc; error?: string }
       if (!response.ok || !payload.document) throw new Error(payload.error ?? 'Could not save document.')
       return payload.document
     },
-    onSuccess: (document) => {
-      setStatus(document.status); setDirty(false)
+    onSuccess: (document, sent) => {
+      if (latest.current === sent) setDirty(false)
       void queryClient.invalidateQueries({ queryKey: ['handbook-docs'] })
       queryClient.setQueryData(['handbook-doc', documentId], (old: { document: Doc; companySlug?: string } | undefined) => old ? { ...old, document } : old)
     },
   })
-  const publicUrl = companySlug ? `/handbook/${companySlug}/${initial.slug}` : null
-  const canSharePublicly = status === 'published' && visibility === 'public' && !dirty && Boolean(publicUrl)
-  async function copyPublicLink() {
-    if (!publicUrl || !canSharePublicly) return
+
+  function update(patch: Partial<Draft>, immediate = false) {
+    const next = { ...latest.current, ...patch }
+    setDraft(next)
+    setDirty(true)
+    if (immediate) save.mutate(next)
+  }
+
+  // Autosave typing after a short pause.
+  useEffect(() => {
+    if (!dirty) return
+    const timer = window.setTimeout(() => save.mutate(latest.current), 900)
+    return () => window.clearTimeout(timer)
+  }, [draft, dirty])
+
+  const published = draft.status === 'published'
+  const state = save.isPending ? 'Saving…' : dirty ? 'Unsaved changes' : save.isError ? 'Not saved' : 'Saved'
+
+  return <div className="mx-auto max-w-3xl">
+    <DocBreadcrumb title={draft.title}>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground" aria-live="polite">{published ? 'Published' : 'Draft'} · {state}</span>
+        <ShareDialog draft={draft} slug={initial.slug} companySlug={companySlug} saved={!dirty && !save.isPending} onVisibility={(visibility) => update({ visibility }, true)} />
+        <Button size="sm" variant={published ? 'outline' : 'default'} onClick={() => update({ status: published ? 'draft' : 'published' }, true)}>{published ? 'Unpublish' : 'Publish'}</Button>
+      </div>
+    </DocBreadcrumb>
+    <textarea
+      aria-label="Document title"
+      rows={1}
+      value={draft.title}
+      placeholder="Untitled"
+      onChange={(event) => update({ title: event.target.value.replace(/\n/g, ' ') })}
+      onKeyDown={(event) => { if (event.key === 'Enter') event.preventDefault() }}
+      className="field-sizing-content w-full resize-none overflow-hidden bg-transparent py-1 text-4xl leading-tight font-semibold tracking-[-0.045em] text-balance outline-none placeholder:text-muted-foreground/48 sm:text-5xl"
+    />
+    <div className="mt-3 mb-8 flex items-center gap-2 text-xs text-muted-foreground">
+      <span>Type</span>
+      <NativeSelect size="sm" className="w-auto" value={draft.kind} onChange={(event) => update({ kind: event.target.value }, true)} aria-label="Document type">
+        <NativeSelectOption value="general">Document</NativeSelectOption>
+        <NativeSelectOption value="policy">Policy</NativeSelectOption>
+        <NativeSelectOption value="sop">SOP</NativeSelectOption>
+        <NativeSelectOption value="guide">Guide</NativeSelectOption>
+      </NativeSelect>
+    </div>
+    {save.isError && <p role="alert" className="mb-4 text-sm text-destructive">{save.error.message}</p>}
+    <Suspense fallback={<div className="flex flex-col gap-3"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-5/6" /><Skeleton className="h-4 w-2/3" /></div>}>
+      <HandbookEditor key={documentId} content={draft.content} onChange={(content) => update({ content })} />
+    </Suspense>
+  </div>
+}
+
+function ShareDialog({ draft, slug, companySlug, saved, onVisibility }: { draft: Draft; slug: string; companySlug?: string; saved: boolean; onVisibility: (visibility: string) => void }) {
+  const [copied, setCopied] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const isPublic = draft.visibility === 'public'
+  const publicUrl = companySlug ? `/handbook/${companySlug}/${slug}` : null
+  const linkLive = isPublic && draft.status === 'published' && saved && Boolean(publicUrl)
+  async function copy() {
+    if (!publicUrl) return
     try {
       await navigator.clipboard.writeText(new URL(publicUrl, window.location.origin).toString())
       setCopied(true)
-      setShareError(null)
+      setError(null)
     } catch {
-      setShareError('Could not copy the link. Open the public page and copy its address instead.')
+      setError('Could not copy. Open the page and copy its address instead.')
     }
   }
-  return <div className="mx-auto max-w-3xl">
-      <Input aria-label="Document title" className="mb-6 h-auto w-full border-0 bg-transparent px-0 text-4xl font-semibold tracking-[-0.045em] shadow-none placeholder:text-muted-foreground/60 focus-visible:ring-0 sm:text-5xl" value={title} onChange={(event) => { setTitle(event.target.value); setDirty(true) }} placeholder="Untitled" />
-      <div className="mb-8 flex flex-wrap items-center gap-2 border-b pb-5">
-        <span className="mr-auto text-xs text-muted-foreground">{status === 'published' ? 'Published' : 'Draft'}{dirty ? ' · Unsaved changes' : ' · Saved'}</span>
-        <Button variant="outline" onClick={() => save.mutate(status)} loading={save.isPending}>Save</Button>
-        <Button onClick={() => save.mutate(status === 'published' ? 'draft' : 'published')} loading={save.isPending}>{status === 'published' ? 'Unpublish' : 'Publish'}</Button>
-        <Dialog><DialogTrigger render={<Button variant="outline" />}><Share2 data-icon="inline-start" />Share</DialogTrigger><DialogPopup><DialogHeader><DialogTitle>Share document</DialogTitle><DialogDescription>Choose who can open this document. Public sharing requires a published, saved document.</DialogDescription></DialogHeader><DialogPanel className="flex flex-col gap-4"><label className="flex flex-col gap-2 text-sm font-medium">Who can access<NativeSelect className="w-full" value={visibility} onChange={(event) => { setVisibility(event.target.value); setDirty(true); setCopied(false) }}><NativeSelectOption value="private">People with Docs access</NativeSelectOption><NativeSelectOption value="public">Anyone with the link</NativeSelectOption></NativeSelect></label><p className="text-sm text-muted-foreground">{visibility === 'public' ? 'Publish and save this document to create a public page.' : 'This document stays inside your workspace, including when published.'}</p>{canSharePublicly && <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => { void copyPublicLink() }}>{copied ? <Check data-icon="inline-start" /> : <Copy data-icon="inline-start" />}{copied ? 'Copied link' : 'Copy public link'}</Button><Button variant="ghost" render={<a href={publicUrl ?? '#'} target="_blank" rel="noreferrer" />}><ExternalLink data-icon="inline-start" />Open page</Button></div>}{visibility === 'public' && !canSharePublicly && <p className="text-xs text-muted-foreground">Save {status !== 'published' ? 'and publish ' : ''}your changes to enable the link.</p>}{shareError && <p role="alert" className="text-sm text-destructive">{shareError}</p>}</DialogPanel><DialogFooter><DialogClose render={<Button variant="outline" />}>Done</DialogClose></DialogFooter></DialogPopup></Dialog>
-      </div>
-      {save.isError && <p className="mb-4 text-sm text-destructive">{save.error.message}</p>}
-      <Suspense fallback={<div className="rounded-lg border p-8 text-sm text-muted-foreground">Loading editor…</div>}><HandbookEditor key={documentId} content={content} onChange={(next) => { setContent(next); setDirty(true) }} /></Suspense>
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t pt-5 text-xs text-muted-foreground"><p>Type / for blocks. Changes are saved when you select Save.</p><label className="flex items-center gap-2">Document type<NativeSelect value={kind} onChange={(event) => { setKind(event.target.value); setDirty(true) }}><NativeSelectOption value="general">Document</NativeSelectOption><NativeSelectOption value="policy">Policy</NativeSelectOption><NativeSelectOption value="sop">SOP</NativeSelectOption><NativeSelectOption value="guide">Guide</NativeSelectOption></NativeSelect></label></div>
-    </div>
+  return <Dialog onOpenChange={() => setCopied(false)}>
+    <DialogTrigger render={<Button size="sm" variant="ghost" />}><Share2 data-icon="inline-start" />Share</DialogTrigger>
+    <DialogPopup>
+      <DialogHeader>
+        <DialogTitle>Share</DialogTitle>
+        <DialogDescription>Everyone in the workspace with Docs access can read this once it is published.</DialogDescription>
+      </DialogHeader>
+      <DialogPanel className="flex flex-col gap-4">
+        <label className="flex items-center gap-3 rounded-lg border p-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-md bg-muted">{isPublic ? <Globe className="size-4" /> : <Lock className="size-4" />}</span>
+          <span className="flex-1">
+            <span className="block text-sm font-medium">Public link</span>
+            <span className="block text-xs text-muted-foreground">{isPublic ? 'Anyone with the link can read it, no sign-in needed.' : 'Off. Only your workspace can read it.'}</span>
+          </span>
+          <Switch checked={isPublic} onCheckedChange={(checked) => onVisibility(checked ? 'public' : 'private')} />
+        </label>
+        {isPublic && (linkLive
+          ? <div className="flex flex-wrap gap-2">
+              <Button onClick={() => { void copy() }}>{copied ? <Check data-icon="inline-start" /> : <Copy data-icon="inline-start" />}{copied ? 'Copied' : 'Copy link'}</Button>
+              <Button variant="ghost" render={<a href={publicUrl ?? '#'} target="_blank" rel="noreferrer" />}><ExternalLink data-icon="inline-start" />Open page</Button>
+            </div>
+          : <p className="text-sm text-muted-foreground">{draft.status !== 'published' ? 'Publish the document to turn the link on.' : 'Saving…'}</p>)}
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+      </DialogPanel>
+    </DialogPopup>
+  </Dialog>
 }

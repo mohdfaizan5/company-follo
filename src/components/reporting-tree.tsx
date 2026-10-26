@@ -1,112 +1,131 @@
-import { EmptyState } from '#/components/empty-state'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { Handle, Position, ReactFlow, ReactFlowProvider, useReactFlow } from '@xyflow/react'
-import type { Edge, Node, NodeProps } from '@xyflow/react'
-import { ChevronDown, ExternalLink, Network } from 'lucide-react'
-import { Avatar, AvatarFallback } from '#/components/ui/avatar'
-import { Badge } from '#/components/ui/badge'
+import { ChevronDown, Maximize2, Minus, Network, Plus } from 'lucide-react'
+import { EmptyState } from '#/components/empty-state'
+import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
+import { Button } from '#/components/ui/button'
+import { Group } from '#/components/ui/group'
+import { Tooltip, TooltipPopup, TooltipTrigger } from '#/components/ui/tooltip'
 import { personName } from '#/lib/people-client'
 import type { Person } from '#/lib/people-client'
-import '@xyflow/react/dist/style.css'
+import { cn } from '#/lib/utils'
 
-const NODE_WIDTH = 224
-const NODE_HEIGHT = 82
-const GAP_X = 32
-const GAP_Y = 86
+const ZOOM_STEPS = [0.5, 0.65, 0.8, 1, 1.15]
 
-type PersonNodeData = { person: Person; reportCount: number; expanded: boolean; onToggle: (id: string) => void }
-type TreeNode = Node<PersonNodeData, 'person'>
+/** Dot colour and label for where someone is today. */
+export const presence = {
+  in: { label: 'Working today', dot: 'bg-emerald-500' },
+  wfh: { label: 'Working from home', dot: 'bg-sky-500' },
+  paid: { label: 'On leave', dot: 'bg-amber-500' },
+  unpaid: { label: 'On leave', dot: 'bg-amber-500' },
+} as const
 
-function PersonCard({ data }: NodeProps<TreeNode>) {
-  const { person, reportCount, expanded, onToggle } = data
-  const name = personName(person)
-  const initials = name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()
-  return <div className="w-56 rounded-xl border bg-card p-3 text-left shadow-sm">
-    <Handle type="target" position={Position.Top} isConnectable={false} className="!pointer-events-none !h-0 !w-0 !border-0 !bg-transparent" />
-    <div className="flex items-center gap-2.5"><Avatar className="size-9"><AvatarFallback>{initials}</AvatarFallback></Avatar><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{name}</p><p className="truncate text-xs text-muted-foreground">{person.title}</p></div><Link to="/dashboard/people/$personId" params={{ personId: person.id }} onClick={(event) => event.stopPropagation()} aria-label={`Open ${name}'s profile`} className="nodrag grid size-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"><ExternalLink className="size-3.5" /></Link></div>
-    {reportCount > 0 && <button type="button" className="nodrag mt-2 flex w-full items-center justify-between border-t pt-2 text-xs text-muted-foreground hover:text-foreground" onClick={(event) => { event.stopPropagation(); onToggle(person.employment_id) }} aria-expanded={expanded}><span>{reportCount} direct {reportCount === 1 ? 'report' : 'reports'}</span><ChevronDown className={`size-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} /></button>}
-    <Handle type="source" position={Position.Bottom} isConnectable={false} className="!pointer-events-none !h-0 !w-0 !border-0 !bg-transparent" />
-  </div>
+export function presenceOf(person: Person) {
+  return presence[person.today_status ?? 'in']
 }
 
-const nodeTypes = { person: PersonCard }
-
-function FlowTree({ people }: { people: Person[] }) {
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
-  const flow = useReactFlow()
-  const children = useMemo(() => {
-    const byManager = new Map<string, Person[]>()
-    for (const person of people) {
-      const key = person.manager_employment_id ?? ''
-      byManager.set(key, [...(byManager.get(key) ?? []), person])
-    }
-    return byManager
-  }, [people])
-  const toggle = useCallback((employmentId: string) => {
-    setExpanded((current) => {
-      const next = new Set(current)
-      if (next.has(employmentId)) next.delete(employmentId)
-      else {
-        const stack = [employmentId]
-        while (stack.length) {
-          const id = stack.pop()!
-          next.add(id)
-          for (const child of children.get(id) ?? []) stack.push(child.employment_id)
-        }
-      }
-      return next
-    })
-  }, [children])
-
-  const { nodes, edges } = useMemo(() => {
-    const known = new Set(people.map((person) => person.employment_id))
-    const roots = people.filter((person) => !person.manager_employment_id || !known.has(person.manager_employment_id))
-    const visible: TreeNode[] = []
-    const connections: Edge[] = []
-    const visited = new Set<string>()
-    function place(person: Person, left: number, depth: number): number {
-      if (visited.has(person.employment_id)) return NODE_WIDTH + GAP_X
-      visited.add(person.employment_id)
-      const reports = expanded.has(person.employment_id) ? children.get(person.employment_id) ?? [] : []
-      let width = NODE_WIDTH + GAP_X
-      if (reports.length) {
-        let childWidth = 0
-        for (const report of reports) childWidth += measure(report, new Set(visited))
-        width = Math.max(width, childWidth)
-      }
-      visible.push({ id: person.employment_id, type: 'person', position: { x: left + (width - NODE_WIDTH) / 2, y: depth * (NODE_HEIGHT + GAP_Y) }, data: { person, reportCount: (children.get(person.employment_id) ?? []).length, expanded: expanded.has(person.employment_id), onToggle: toggle }, draggable: false, connectable: false })
-      let childLeft = left
-      for (const report of reports) {
-        const reportWidth = place(report, childLeft, depth + 1)
-        connections.push({ id: `${person.employment_id}-${report.employment_id}`, source: person.employment_id, target: report.employment_id, type: 'smoothstep', style: { stroke: '#62666d', strokeWidth: 1.5 } })
-        childLeft += reportWidth
-      }
-      return width
-    }
-    function measure(person: Person, seen: Set<string>): number {
-      if (seen.has(person.employment_id)) return NODE_WIDTH + GAP_X
-      seen.add(person.employment_id)
-      const reports = expanded.has(person.employment_id) ? children.get(person.employment_id) ?? [] : []
-      return Math.max(NODE_WIDTH + GAP_X, reports.reduce((sum, report) => sum + measure(report, new Set(seen)), 0))
-    }
-    let left = 0
-    for (const root of roots) left += place(root, left, 0)
-    return { nodes: visible, edges: connections }
-  }, [people, children, expanded, toggle])
-
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => { void flow.fitView({ padding: 0.2, duration: 220 }) })
-    return () => cancelAnimationFrame(frame)
-  }, [nodes, flow])
-
-  return <div className="h-[540px] overflow-hidden rounded-xl border bg-background">
-    <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} nodesDraggable={false} nodesConnectable={false} elementsSelectable={false} onNodeClick={(_, node) => { if (node.data.reportCount > 0) toggle(node.id) }} fitView fitViewOptions={{ padding: 0.22 }} minZoom={0.35} maxZoom={1.25} proOptions={{ hideAttribution: true }} colorMode="dark" />
-    <div className="sr-only">Select a reporting card to expand everyone below it. Use the profile icon to open a person.</div>
-  </div>
+export function initialsOf(name: string) {
+  return name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase() || '?'
 }
 
 export function ReportingTree({ people }: { people: Person[] }) {
-  if (!people.length) return <EmptyState icon={Network} title="No reporting tree yet" description="Add your first person and the tree builds itself as you set who reports to whom." />
-  return <div><div className="mb-3"><Badge variant="outline">{people.length} people</Badge></div><ReactFlowProvider><FlowTree people={people} /></ReactFlowProvider></div>
+  const [zoom, setZoom] = useState(3)
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
+  const { roots, reportsOf } = useMemo(() => {
+    const known = new Set(people.map((person) => person.employment_id))
+    const byManager = new Map<string, Person[]>()
+    for (const person of people) {
+      if (!person.manager_employment_id || !known.has(person.manager_employment_id)) continue
+      byManager.set(person.manager_employment_id, [...(byManager.get(person.manager_employment_id) ?? []), person])
+    }
+    return {
+      roots: people.filter((person) => !person.manager_employment_id || !known.has(person.manager_employment_id)),
+      reportsOf: (id: string) => byManager.get(id) ?? [],
+    }
+  }, [people])
+
+  if (!people.length)
+    return <EmptyState icon={Network} title="No reporting tree yet" description="Add your first person and the tree builds itself as you set who reports to whom." />
+
+  function toggle(id: string) {
+    setCollapsed((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function branch(person: Person, seen: Set<string>): React.ReactNode {
+    if (seen.has(person.employment_id)) return null
+    const nextSeen = new Set(seen).add(person.employment_id)
+    const reports = reportsOf(person.employment_id)
+    const open = !collapsed.has(person.employment_id)
+    return (
+      <li key={person.employment_id}>
+        <PersonNode person={person} reportCount={reports.length} open={open} onToggle={() => toggle(person.employment_id)} />
+        {open && reports.length > 0 && <ul>{reports.map((report) => branch(report, nextSeen))}</ul>}
+      </li>
+    )
+  }
+
+  const scale = ZOOM_STEPS[zoom]
+  return (
+    <div className="relative overflow-hidden rounded-xl border bg-[radial-gradient(var(--color-muted)_1px,transparent_1px)] [background-size:16px_16px]">
+      <div className="max-h-[560px] min-h-80 overflow-auto px-6 py-8">
+        {/* CSS zoom (not transform) so the scroll area shrinks and grows with the tree. */}
+        <div className="org-tree mx-auto w-max" style={{ zoom: scale }}>
+          <ul>{roots.map((root) => branch(root, new Set()))}</ul>
+        </div>
+      </div>
+      <div className="absolute right-3 bottom-3 flex items-center gap-2">
+        <span className="rounded-md bg-background/80 px-2 py-1 text-xs tabular-nums text-muted-foreground backdrop-blur">{Math.round(scale * 100)}%</span>
+        <Group aria-label="Zoom">
+          <Button size="icon-sm" variant="outline" aria-label="Zoom out" disabled={zoom === 0} onClick={() => setZoom(zoom - 1)}><Minus /></Button>
+          <Button size="icon-sm" variant="outline" aria-label="Reset zoom" onClick={() => { setZoom(3); setCollapsed(new Set()) }}><Maximize2 /></Button>
+          <Button size="icon-sm" variant="outline" aria-label="Zoom in" disabled={zoom === ZOOM_STEPS.length - 1} onClick={() => setZoom(zoom + 1)}><Plus /></Button>
+        </Group>
+      </div>
+    </div>
+  )
+}
+
+function PersonNode({ person, reportCount, open, onToggle }: { person: Person; reportCount: number; open: boolean; onToggle: () => void }) {
+  const name = personName(person)
+  const status = presenceOf(person)
+  return (
+    <div className="flex flex-col items-center">
+      <Link
+        to="/dashboard/people/$personId"
+        params={{ personId: person.id }}
+        className="group flex w-40 flex-col items-center rounded-2xl border bg-card px-3 pt-4 pb-3 text-center no-underline shadow-xs/5 transition-colors hover:border-primary/40 hover:bg-accent/40"
+      >
+        <span className="relative">
+          <Avatar className="size-12 ring-2 ring-background">
+            {person.avatar_url && <AvatarImage src={person.avatar_url} alt="" />}
+            <AvatarFallback className="text-sm">{initialsOf(name)}</AvatarFallback>
+          </Avatar>
+          <Tooltip>
+            <TooltipTrigger render={<span className={cn('absolute right-0 bottom-0 size-3 rounded-full ring-2 ring-card', status.dot)} aria-label={status.label} />} />
+            <TooltipPopup>{status.label}</TooltipPopup>
+          </Tooltip>
+        </span>
+        <span className="mt-2.5 w-full truncate text-sm font-medium">{name}</span>
+        <span className="w-full truncate text-xs text-muted-foreground">{person.title}</span>
+        {person.department && <span className="mt-2 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">{person.department}</span>}
+      </Link>
+      {reportCount > 0 && (
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          aria-label={`${open ? 'Hide' : 'Show'} ${reportCount} ${reportCount === 1 ? 'report' : 'reports'} of ${name}`}
+          className="relative z-1 -mt-2.5 flex h-5 items-center gap-0.5 rounded-full border bg-background px-1.5 text-[11px] font-medium tabular-nums text-muted-foreground hover:text-foreground"
+        >
+          {reportCount}
+          <ChevronDown className={cn('size-3 transition-transform', open && 'rotate-180')} />
+        </button>
+      )}
+    </div>
+  )
 }

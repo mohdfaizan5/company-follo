@@ -10,6 +10,11 @@ export type Person = {
   department: string | null
   level: string | null
   manager_employment_id: string | null
+  avatar_url?: string | null
+  /** Leave category covering today: paid / unpaid leave or wfh. Null when the person is in. */
+  today_status?: 'paid' | 'unpaid' | 'wfh' | null
+  /** Workspace access: their role once they accepted an invitation, `invited` while one is pending, null otherwise. */
+  access?: 'owner' | 'hr_admin' | 'employee' | 'invited' | null
 }
 
 export function personName(person: Pick<Person, 'first_name' | 'last_name'>) {

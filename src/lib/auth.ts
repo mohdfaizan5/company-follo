@@ -19,5 +19,9 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  session: {
+    // Sessions are verified from a signed cookie for 5 minutes, so most requests skip the database round trips.
+    cookieCache: { enabled: true, maxAge: 5 * 60 },
+  },
   plugins: [tanstackStartCookies()],
 })

@@ -19,5 +19,6 @@ export function HandbookEditor({ content, onChange }: { content: JSONContent; on
     content,
     onUpdate: ({ editor: current }) => onChange(current.getJSON()),
   })
-  return <div className="min-h-80 bg-background py-2"><BlockEditor editor={editor} /></div>
+  // The editor keeps a 2rem gutter for its drag handle; pull it into the margin so text lines up with the title.
+  return <div className="doc-content -ml-8 min-h-80 [&_.ProseMirror]:min-h-80 [&_.ProseMirror]:py-0"><BlockEditor editor={editor} /></div>
 }
