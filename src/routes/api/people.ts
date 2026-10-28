@@ -11,9 +11,11 @@ export const Route = createFileRoute('/api/people')({
       GET: async ({ request }) => {
         const context = await requireCompanyAccess(request, 'people', 'read')
         if ('error' in context) return context.error
+        // ?status=former lists people who have left; the default is everyone still employed.
+        const former = new URL(request.url).searchParams.get('status') === 'former'
         const people = await context.sql`
           SELECT p.id, p.first_name, p.last_name, p.work_email, p.phone_number, p.avatar_url,
-                 e.id AS employment_id, e.title, e.department, e.level, e.start_date::text AS start_date, e.status,
+                 e.id AS employment_id, e.title, e.department, e.level, e.start_date::text AS start_date, e.status, e.end_date::text AS end_date, e.end_reason,
                  e.manager_employment_id,
                  (SELECT lp.category FROM leave_requests r JOIN leave_policies lp ON lp.id = r.leave_policy_id
                    WHERE r.employment_id = e.id AND r.status = 'approved' AND CURRENT_DATE BETWEEN r.start_date AND r.end_date
@@ -25,7 +27,7 @@ export const Route = createFileRoute('/api/people')({
                    WHERE i.person_id = p.id) AS access
           FROM employments e
           JOIN people p ON p.id = e.person_id
-          WHERE e.company_id = ${context.company.company_id} AND e.status <> 'ended'
+          WHERE e.company_id = ${context.company.company_id} AND (e.status = 'ended') = ${former}
           ORDER BY e.start_date ASC, p.first_name ASC
         `
         return json({ people })

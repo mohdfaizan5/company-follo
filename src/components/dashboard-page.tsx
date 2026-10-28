@@ -1,3 +1,4 @@
+import { Navigate } from '@tanstack/react-router'
 import { ChevronDown, LogOut } from 'lucide-react'
 import { authClient } from '#/lib/auth-client'
 import { Avatar, AvatarFallback } from '#/components/ui/avatar'
@@ -13,7 +14,6 @@ import {
 } from '#/components/ui/menu'
 import { PageSkeleton } from '#/components/page-skeletons'
 import type { PageSkeletonKind } from '#/components/page-skeletons'
-import { NotFoundPage } from '#/components/not-found-page'
 import { WorkspaceSetup } from '#/components/workspace-setup'
 import { useWorkspace } from '#/lib/workspace-client'
 
@@ -38,7 +38,7 @@ export function DashboardPage({
   const { data: session, isPending } = authClient.useSession()
   // Fetched alongside the session instead of after it; the cookie is what authorizes it.
   const workspace = useWorkspace(true)
-  if (!isPending && !session?.user) return <NotFoundPage />
+  if (!isPending && !session?.user) return <Navigate to="/login" replace />
   if (isPending || workspace.isPending)
     return (
       <main className="min-h-svh">
@@ -61,7 +61,7 @@ export function DashboardPage({
         </div>
       </main>
     )
-  if (!session?.user) return <NotFoundPage />
+  if (!session?.user) return <Navigate to="/login" replace />
   if (workspace.isError)
     return (
       <main className="grid min-h-svh place-items-center p-6 text-sm text-destructive">

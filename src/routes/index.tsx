@@ -1,6 +1,7 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { ArrowRight, CircleDollarSign, Network, UserRound } from 'lucide-react'
 import { Button } from '#/components/ui/button'
+import { LandingFeatures } from '#/components/landing-features'
 
 export const Route = createFileRoute('/')({ component: Landing })
 
@@ -11,6 +12,7 @@ function Landing() {
       <div><p className="text-sm font-medium text-primary">For small teams with real work to do</p><h1 className="mt-5 max-w-2xl text-5xl font-semibold leading-[1.05] tracking-[-0.055em] text-balance sm:text-6xl">The quieter way to keep your company together.</h1><p className="mt-6 max-w-xl text-lg leading-8 text-muted-foreground">Keep your people, reporting lines, payment records, and notes in one calm workspace.</p><div className="mt-8 flex flex-wrap gap-3"><Button size="lg" render={<Link to="/dashboard" />}>Get started<ArrowRight data-icon="inline-end" /></Button></div></div>
       <div className="rounded-xl border bg-card p-6"><p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">One place to start</p><div className="mt-6 space-y-3"><Feature icon={<UserRound />} title="People records" detail="Keep contact and work details together." /><Feature icon={<Network />} title="Reporting tree" detail="See who reports to whom as your team grows." /><Feature icon={<CircleDollarSign />} title="Payment history" detail="Record amounts and dates in INR or USD." /></div><p className="mt-6 border-t pt-5 text-sm text-muted-foreground">Your dashboard shows your own company data after setup.</p></div>
     </section>
+    <LandingFeatures />
   </main>
 }
 

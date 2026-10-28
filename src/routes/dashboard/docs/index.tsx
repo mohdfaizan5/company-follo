@@ -17,6 +17,7 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from '#/components/ui/tooltip'
 import { docTemplates } from '#/lib/doc-templates'
 import { cn } from '#/lib/utils'
 import { useWorkspace } from '#/lib/workspace-client'
+import { appToast } from '#/lib/toast'
 import type { DocTemplate } from '#/lib/doc-templates'
 
 type Doc = { id: string; title: string; kind: string; visibility: string; status: string; created_at: string; updated_at: string; owner_name: string | null; owner_image: string | null }
@@ -82,8 +83,10 @@ function DocsPage() {
     },
     onSuccess: async (document) => {
       await queryClient.invalidateQueries({ queryKey: ['handbook-docs'] })
+      appToast.success('Document created', { description: 'Start writing whenever you are ready.' })
       await navigate({ to: '/dashboard/docs/$documentId', params: { documentId: document.id } })
     },
+    onError: (error) => appToast.error('Document not created', error, 'Could not create the document.'),
   })
 
   // Press C anywhere on the page (outside a field) to start a new document

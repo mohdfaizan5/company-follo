@@ -13,6 +13,7 @@ import { Skeleton } from '#/components/ui/skeleton'
 import { Switch } from '#/components/ui/switch'
 import { useWorkspace } from '#/lib/workspace-client'
 import { HandbookContent } from '#/components/handbook-content'
+import { appToast } from '#/lib/toast'
 
 const HandbookEditor = lazy(() => import('#/components/handbook-editor').then((module) => ({ default: module.HandbookEditor })))
 type Doc = { id: string; title: string; slug: string; kind: string; visibility: string; status: string; content: JSONContent; updated_at?: string }
@@ -66,6 +67,7 @@ function DocumentEditor({ initial, companySlug }: { initial: Doc; companySlug?: 
       void queryClient.invalidateQueries({ queryKey: ['handbook-docs'] })
       queryClient.setQueryData(['handbook-doc', documentId], (old: { document: Doc; companySlug?: string } | undefined) => old ? { ...old, document } : old)
     },
+    onError: (error) => appToast.error('Document not saved', error, 'Could not save the document.'),
   })
 
   function update(patch: Partial<Draft>, immediate = false) {
@@ -130,8 +132,10 @@ function ShareDialog({ draft, slug, companySlug, saved, onVisibility }: { draft:
       await navigator.clipboard.writeText(new URL(publicUrl, window.location.origin).toString())
       setCopied(true)
       setError(null)
+      appToast.info('Link copied', { description: 'Ready to share.' })
     } catch {
       setError('Could not copy. Open the page and copy its address instead.')
+      appToast.error('Link not copied', new Error('Your browser did not allow clipboard access.'), 'Could not copy the public link.')
     }
   }
   return <Dialog onOpenChange={() => setCopied(false)}>

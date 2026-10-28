@@ -8,6 +8,7 @@ import { Input } from '#/components/ui/input'
 import { NativeSelect, NativeSelectOption } from '#/components/ui/native-select'
 import { useUploadThing } from '#/lib/uploadthing'
 import { cn } from '#/lib/utils'
+import { appToast } from '#/lib/toast'
 
 const PHOTO_TYPES = 'image/png,image/jpeg,image/webp,image/gif,image/avif'
 const PHOTO_MAX_BYTES = 8 * 1024 * 1024
@@ -23,7 +24,7 @@ export function EmployeePhotoUpload({ personId, enabled, children }: { personId:
   const ref = useRef<HTMLInputElement>(null)
   const [error, setError] = useState('')
   const queryClient = useQueryClient()
-  const { startUpload, isUploading } = useUploadThing('employeePhoto', { onClientUploadComplete: () => { setError(''); void queryClient.invalidateQueries({ queryKey: ['person', personId] }) }, onUploadError: (uploadError) => setError(uploadError.message) })
+  const { startUpload, isUploading } = useUploadThing('employeePhoto', { onClientUploadComplete: () => { setError(''); void queryClient.invalidateQueries({ queryKey: ['person', personId] }); appToast.success('Profile photo updated') }, onUploadError: (uploadError) => { setError(uploadError.message); appToast.error('Photo not uploaded', uploadError, 'Could not upload the photo.') } })
   return <div><input ref={ref} className="sr-only" type="file" accept={PHOTO_TYPES} aria-label="Upload profile photo" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (!file) return; const problem = photoError(file); setError(problem); if (!problem) void startUpload([file], { personId }) }} /><button type="button" className="group relative rounded-full disabled:cursor-not-allowed disabled:opacity-60" disabled={!enabled || isUploading} aria-label={isUploading ? 'Uploading photo' : 'Change profile photo'} onClick={() => ref.current?.click()}>{children ?? <span className="grid size-12 place-items-center rounded-full border"><Camera className="size-5" /></span>}<span className="absolute -bottom-1 -right-1 grid size-6 place-items-center rounded-full border bg-card text-foreground shadow-sm transition-colors group-hover:bg-accent"><Camera className="size-3" /></span></button>{error && <p className="mt-1 text-xs text-destructive">{error}</p>}</div>
 }
 
@@ -34,7 +35,7 @@ export function EmployeeDocumentUpload({ personId, enabled }: { personId: string
   const [error, setError] = useState('')
   const [dragging, setDragging] = useState(false)
   const queryClient = useQueryClient()
-  const { startUpload, isUploading } = useUploadThing('employeeDocument', { onClientUploadComplete: () => { setName(''); setError(''); void queryClient.invalidateQueries({ queryKey: ['person', personId] }) }, onUploadError: (uploadError) => setError(uploadError.message) })
+  const { startUpload, isUploading } = useUploadThing('employeeDocument', { onClientUploadComplete: () => { setName(''); setError(''); void queryClient.invalidateQueries({ queryKey: ['person', personId] }); appToast.success('Document uploaded') }, onUploadError: (uploadError) => { setError(uploadError.message); appToast.error('Document not uploaded', uploadError, 'Could not upload the document.') } })
   const blocked = !enabled || isUploading
   // Falls back to the file name so a document never needs a name typed first.
   function upload(file: File | undefined) {
@@ -76,7 +77,7 @@ export function EmployeePhotoActions({ personId, enabled, hasPhoto }: { personId
   const [error, setError] = useState('')
   const [removing, setRemoving] = useState(false)
   const queryClient = useQueryClient()
-  const { startUpload, isUploading } = useUploadThing('employeePhoto', { onClientUploadComplete: () => { setError(''); void queryClient.invalidateQueries({ queryKey: ['person', personId] }) }, onUploadError: (uploadError) => setError(uploadError.message) })
+  const { startUpload, isUploading } = useUploadThing('employeePhoto', { onClientUploadComplete: () => { setError(''); void queryClient.invalidateQueries({ queryKey: ['person', personId] }); appToast.success('Profile photo updated') }, onUploadError: (uploadError) => { setError(uploadError.message); appToast.error('Photo not uploaded', uploadError, 'Could not upload the photo.') } })
   async function remove() {
     setRemoving(true)
     setError('')
@@ -84,8 +85,10 @@ export function EmployeePhotoActions({ personId, enabled, hasPhoto }: { personId
       const response = await fetch(`/api/people/${personId}/photo`, { method: 'DELETE' })
       if (!response.ok) throw new Error(((await response.json()) as { error?: string }).error ?? 'Could not remove the photo.')
       await queryClient.invalidateQueries({ queryKey: ['person', personId] })
+      appToast.info('Profile photo removed')
     } catch (removeError) {
       setError(removeError instanceof Error ? removeError.message : 'Could not remove the photo.')
+      appToast.error('Photo not removed', removeError, 'Could not remove the photo.')
     } finally {
       setRemoving(false)
     }
@@ -106,15 +109,17 @@ export function CompanyLogoUpload({ logoUrl, companyName, canEdit }: { logoUrl?:
   const [error, setError] = useState('')
   const [removing, setRemoving] = useState(false)
   const queryClient = useQueryClient()
-  const { startUpload, isUploading } = useUploadThing('companyLogo', { onClientUploadComplete: () => { setError(''); void queryClient.invalidateQueries({ queryKey: ['workspace'] }) }, onUploadError: (uploadError) => setError(uploadError.message) })
+  const { startUpload, isUploading } = useUploadThing('companyLogo', { onClientUploadComplete: () => { setError(''); void queryClient.invalidateQueries({ queryKey: ['workspace'] }); appToast.success('Company logo updated') }, onUploadError: (uploadError) => { setError(uploadError.message); appToast.error('Logo not uploaded', uploadError, 'Could not upload the logo.') } })
   async function remove() {
     setRemoving(true)
     try {
       const response = await fetch('/api/workspace', { method: 'DELETE' })
       if (!response.ok) throw new Error(((await response.json()) as { error?: string }).error ?? 'Could not remove the logo.')
       await queryClient.invalidateQueries({ queryKey: ['workspace'] })
+      appToast.info('Company logo removed')
     } catch (removeError) {
       setError(removeError instanceof Error ? removeError.message : 'Could not remove the logo.')
+      appToast.error('Logo not removed', removeError, 'Could not remove the logo.')
     } finally {
       setRemoving(false)
     }

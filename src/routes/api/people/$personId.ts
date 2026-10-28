@@ -16,6 +16,7 @@ export const Route = createFileRoute('/api/people/$personId')({
         const person = (await sql`
           SELECT p.id, p.organization_id, p.first_name, p.last_name, p.work_email, p.phone_number, p.personal_email, p.address, p.avatar_url, p.notes,
                  e.id AS employment_id, e.title, e.department, e.level, e.start_date::text AS start_date, e.status,
+                 e.end_date::text AS end_date, e.end_reason, e.exit_note,
                  e.manager_employment_id, manager_person.first_name AS manager_first_name,
                  manager_person.last_name AS manager_last_name, c.id AS company_id, c.name AS company_name
           FROM people p

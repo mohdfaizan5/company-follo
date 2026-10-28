@@ -16,6 +16,7 @@ import { NativeSelect, NativeSelectOption } from '#/components/ui/native-select'
 import { Textarea } from '#/components/ui/textarea'
 import { cn } from '#/lib/utils'
 import { meQueryOptions } from '#/routes/dashboard/me'
+import { appToast } from '#/lib/toast'
 import type { Me } from '#/routes/dashboard/me'
 
 /** A person's own calendar: company holidays and their own leave, read-only, plus requesting time off. */
@@ -128,7 +129,7 @@ function MyRequests({ data }: { data: Me }) {
                 {leave.reason && <span className="min-w-0 flex-1 truncate text-muted-foreground">{leave.reason}</span>}
                 <span className="ml-auto flex items-center gap-2">
                   {leave.status === 'pending' ? <Badge variant="warning">Awaiting approval</Badge> : leave.status === 'approved' ? <Badge variant="success">Approved</Badge> : <Badge variant="secondary" className="capitalize">{leave.status}</Badge>}
-                  {leave.status === 'pending' && <Button size="xs" variant="ghost" disabled={cancel.isPending} onClick={() => cancel.mutate({ action: 'cancelRequest', requestId: leave.id })}>Cancel</Button>}
+                  {leave.status === 'pending' && <Button size="xs" variant="ghost" disabled={cancel.isPending} onClick={() => cancel.mutate({ action: 'cancelRequest', requestId: leave.id }, { onSuccess: () => appToast.info('Leave request cancelled') })}>Cancel</Button>}
                 </span>
               </div>
             )
@@ -155,7 +156,7 @@ function RequestDialog({ data, onClose }: { data: Me; onClose: () => void }) {
           <DialogTitle>Request leave</DialogTitle>
           <DialogDescription>HR or your manager reviews it. Weekly offs and holidays are not counted.</DialogDescription>
         </DialogHeader>
-        <form className="contents" onSubmit={(event) => { event.preventDefault(); action.mutate({ action: 'requestLeave', policyId, startDate, endDate: endDate || startDate, halfDay, reason }, { onSuccess: onClose }) }}>
+        <form className="contents" onSubmit={(event) => { event.preventDefault(); action.mutate({ action: 'requestLeave', policyId, startDate, endDate: endDate || startDate, halfDay, reason }, { onSuccess: () => { appToast.success('Leave request sent', { description: 'It is ready for review.' }); onClose() }, onError: (error) => appToast.error('Leave request not sent', error, 'Could not send the leave request.') }) }}>
           <DialogPanel className="flex flex-col gap-4">
             <label className="flex flex-col gap-1.5 text-sm font-medium">Type
               <NativeSelect required value={policyId} onChange={(event) => setPolicyId(event.target.value)}>

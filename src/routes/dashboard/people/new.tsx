@@ -13,6 +13,7 @@ import { SettingsRow, SettingsSection } from '#/components/settings-form'
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from '#/components/ui/select'
 import { peopleQueryOptions, personName } from '#/lib/people-client'
 import { useWorkspace, workspaceQueryOptions } from '#/lib/workspace-client'
+import { appToast } from '#/lib/toast'
 
 export const Route = createFileRoute('/dashboard/people/new')({
   loader: async ({ context }) => {
@@ -53,8 +54,10 @@ function AddPerson() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['people'] })
       await queryClient.invalidateQueries({ queryKey: ['overview'] })
+      appToast.success('Person added', { description: `${name} is now in your people directory.` })
       void navigate({ to: '/dashboard/people' })
     },
+    onError: (error) => appToast.error('Person not added', error, 'Could not add this person.'),
   })
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()

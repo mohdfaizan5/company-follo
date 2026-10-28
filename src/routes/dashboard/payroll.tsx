@@ -4,6 +4,7 @@ import { useId, useMemo, useState } from 'react'
 import { ArrowRight, CalendarDays, ChevronDown, ChevronUp, CircleDollarSign, ListFilter, MapPin, Plus, Search } from 'lucide-react'
 import { EmptyState } from '#/components/empty-state'
 import { DashboardPage } from '#/components/dashboard-page'
+import { appToast } from '#/lib/toast'
 import { TableSkeleton } from '#/components/page-skeletons'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
 import { Badge } from '#/components/ui/badge'
@@ -14,12 +15,12 @@ import { Dialog, DialogClose, DialogDescription, DialogFooter, DialogHeader, Dia
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
 import { Menu, MenuCheckboxItem, MenuGroup, MenuGroupLabel, MenuPopup, MenuSeparator, MenuTrigger } from '#/components/ui/menu'
-import { NativeSelect, NativeSelectOption } from '#/components/ui/native-select'
+import { NativeSelect, NativeSelectOptGroup, NativeSelectOption } from '#/components/ui/native-select'
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from '#/components/ui/pagination'
 import { Popover, PopoverPopup, PopoverTrigger } from '#/components/ui/popover'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '#/components/ui/table'
 import { Textarea } from '#/components/ui/textarea'
-import { peopleQueryOptions, personName } from '#/lib/people-client'
+import { formerPeopleQueryOptions, peopleQueryOptions, personName } from '#/lib/people-client'
 import type { getPeople } from '#/lib/people-client'
 import { cn } from '#/lib/utils'
 import { useWorkspace, workspaceQueryOptions } from '#/lib/workspace-client'
@@ -103,6 +104,7 @@ export const Route = createFileRoute('/dashboard/payroll')({
 function Payroll() {
   const workspace = useWorkspace(true)
   const people = useQuery({ ...peopleQueryOptions, enabled: Boolean(workspace.data?.permissions.people.read) })
+  const former = useQuery({ ...formerPeopleQueryOptions, enabled: Boolean(workspace.data?.permissions.people.read) })
   const payments = useQuery(paymentsQueryOptions)
   return (
     <DashboardPage
@@ -110,7 +112,7 @@ function Payroll() {
       wide
       title="Payments"
       description="Everything paid out, by type and region. Recording a payment does not move money."
-      actions={workspace.data?.permissions.payroll.write ? <AddPayment people={people.data ?? []} payments={payments.data ?? []} disabled={!people.data?.length} /> : undefined}
+      actions={workspace.data?.permissions.payroll.write ? <AddPayment people={people.data ?? []} former={former.data ?? []} payments={payments.data ?? []} disabled={!people.data?.length} /> : undefined}
     >
       {payments.isPending ? <TableSkeleton /> : null}
       {payments.isError ? <p className="py-5 text-sm text-destructive">{payments.error.message}</p> : null}
@@ -273,7 +275,7 @@ function PaymentsTable({ payments }: { payments: Payment[] }) {
   )
 }
 
-function AddPayment({ people, payments, disabled }: { people: Awaited<ReturnType<typeof getPeople>>; payments: Payment[]; disabled: boolean }) {
+function AddPayment({ people, former, payments, disabled }: { people: Awaited<ReturnType<typeof getPeople>>; former: Awaited<ReturnType<typeof getPeople>>; payments: Payment[]; disabled: boolean }) {
   const queryClient = useQueryClient()
   const workspace = useWorkspace(true)
   const [open, setOpen] = useState(false)
@@ -307,7 +309,9 @@ function AddPayment({ people, payments, disabled }: { people: Awaited<ReturnType
       setAmount('')
       setNotes('')
       setNewType('')
+      appToast.success(status === 'paid' ? 'Payment recorded as paid' : 'Payment recorded')
     },
+    onError: (error) => appToast.error('Payment not recorded', error, 'Could not record payment.'),
   })
 
   return (
@@ -324,6 +328,7 @@ function AddPayment({ people, payments, disabled }: { people: Awaited<ReturnType
               <NativeSelect required value={employmentId} onChange={(event) => setEmploymentId(event.target.value)}>
                 <NativeSelectOption value="">Choose a person</NativeSelectOption>
                 {people.map((person) => <NativeSelectOption key={person.employment_id} value={person.employment_id}>{personName(person)}</NativeSelectOption>)}
+                {former.length > 0 && <NativeSelectOptGroup label="Former (final settlement)">{former.map((person) => <NativeSelectOption key={person.employment_id} value={person.employment_id}>{personName(person)}</NativeSelectOption>)}</NativeSelectOptGroup>}
               </NativeSelect>
             </label>
             <div className="grid gap-3 sm:grid-cols-2">

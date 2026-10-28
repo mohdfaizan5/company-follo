@@ -15,6 +15,8 @@ export type Person = {
   today_status?: 'paid' | 'unpaid' | 'wfh' | null
   /** Workspace access: their role once they accepted an invitation, `invited` while one is pending, null otherwise. */
   access?: 'owner' | 'hr_admin' | 'employee' | 'invited' | null
+  end_date?: string | null
+  end_reason?: string | null
 }
 
 export function personName(person: Pick<Person, 'first_name' | 'last_name'>) {
@@ -34,6 +36,18 @@ export const peopleQueryOptions = {
   staleTime: 60_000,
 }
 
+/** People whose employment has ended. Their records are kept but hidden everywhere else. */
+export const formerPeopleQueryOptions = {
+  queryKey: ['people', 'former'] as const,
+  queryFn: async () => {
+    const response = await fetch('/api/people?status=former')
+    const payload = await response.json() as { people?: Person[]; error?: string }
+    if (!response.ok) throw new Error(payload.error ?? 'Could not load former people.')
+    return payload.people ?? []
+  },
+  staleTime: 60_000,
+}
+
 export type Invitation = 'none' | 'pending' | 'accepted' | 'expired'
 
 export type PersonProfile = {
@@ -41,6 +55,7 @@ export type PersonProfile = {
     id: string; first_name: string; last_name: string | null; work_email: string | null; phone_number: string | null; personal_email: string | null; address: string | null; avatar_url: string | null;
     notes: string | null; title: string; department: string | null; level: string | null; start_date: string;
     employment_id: string; manager_employment_id: string | null;
+    status: string; end_date: string | null; end_reason: string | null; exit_note: string | null;
     manager_first_name: string | null; manager_last_name: string | null; company_name: string
   }
   invitation: Invitation

@@ -63,6 +63,7 @@ import {
 import { Tabs, TabsList, TabsTab } from '#/components/ui/tabs'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { cn } from '#/lib/utils'
+import { appToast } from '#/lib/toast'
 import { useWorkspace } from '#/lib/workspace-client'
 
 type Policy = {
@@ -566,7 +567,7 @@ function HolidayCard({
                         remove.mutate({
                           action: 'removeHoliday',
                           holidayId: holiday.id,
-                        })
+                        }, { onSuccess: () => appToast.info('Holiday removed') })
                       }
                     >
                       <Trash2 />
@@ -893,7 +894,7 @@ function LeaveDialog({
                 halfDay,
                 reason,
               },
-              { onSuccess: onClose },
+              { onSuccess: () => { appToast.success(recorded ? 'Leave recorded' : 'Leave request added'); onClose() }, onError: (error) => appToast.error('Leave not saved', error, 'Could not save leave.') },
             )
           }}
         >
@@ -1028,7 +1029,7 @@ function HolidayDialog({
                     kind,
                   }
                 : { action: 'holiday', name, date, kind },
-              { onSuccess: onClose },
+              { onSuccess: () => { appToast.success(holiday ? 'Holiday updated' : 'Holiday added'); onClose() }, onError: (error) => appToast.error('Holiday not saved', error, 'Could not save holiday.') },
             )
           }}
         >
@@ -1085,7 +1086,7 @@ function HolidayDialog({
                 onClick={() =>
                   remove.mutate(
                     { action: 'removeHoliday', holidayId: holiday.id },
-                    { onSuccess: onClose },
+                    { onSuccess: () => { appToast.info('Holiday removed'); onClose() }, onError: (error) => appToast.error('Holiday not removed', error, 'Could not remove holiday.') },
                   )
                 }
               >
@@ -1163,7 +1164,7 @@ function PolicyDialog({
               policy
                 ? { action: 'updatePolicy', policyId: policy.id, ...body }
                 : { action: 'policy', ...body },
-              { onSuccess: onClose },
+              { onSuccess: () => { appToast.success(policy ? 'Leave policy updated' : 'Leave policy added'); onClose() }, onError: (error) => appToast.error('Leave policy not saved', error, 'Could not save leave policy.') },
             )
           }}
         >
@@ -1263,7 +1264,7 @@ function PolicyDialog({
                 onClick={() =>
                   remove.mutate(
                     { action: 'removePolicy', policyId: policy.id },
-                    { onSuccess: onClose },
+                    { onSuccess: () => { appToast.warning('Leave policy removed'); onClose() }, onError: (error) => appToast.error('Leave policy not removed', error, 'Could not remove leave policy.') },
                   )
                 }
               >

@@ -43,6 +43,7 @@ import { Route as DashboardPeoplePersonIdRouteImport } from './routes/dashboard/
 import { Route as DashboardPeopleNewRouteImport } from './routes/dashboard/people/new'
 import { Route as HandbookCompanySlugDocumentSlugRouteImport } from './routes/handbook/$companySlug/$documentSlug'
 import { Route as ApiHandbookCompanySlugDocumentSlugRouteImport } from './routes/api/handbook/$companySlug/$documentSlug'
+import { Route as ApiPeoplePersonIdEmploymentRouteImport } from './routes/api/people/$personId/employment'
 import { Route as ApiPeoplePersonIdPhotoRouteImport } from './routes/api/people/$personId/photo'
 import { Route as ApiPeoplePersonIdRecordsRouteImport } from './routes/api/people/$personId/records'
 import { Route as DashboardPeoplePersonIdEditRouteImport } from './routes/dashboard/people.$personId_.edit'
@@ -221,6 +222,12 @@ const ApiHandbookCompanySlugDocumentSlugRoute =
     path: '/api/handbook/$companySlug/$documentSlug',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPeoplePersonIdEmploymentRoute =
+  ApiPeoplePersonIdEmploymentRouteImport.update({
+    id: '/employment',
+    path: '/employment',
+    getParentRoute: () => ApiPeoplePersonIdRoute,
+  } as any)
 const ApiPeoplePersonIdPhotoRoute = ApiPeoplePersonIdPhotoRouteImport.update({
   id: '/photo',
   path: '/photo',
@@ -280,6 +287,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/docs/': typeof DashboardDocsIndexRoute
   '/dashboard/people/': typeof DashboardPeopleIndexRoute
   '/api/handbook/$companySlug/$documentSlug': typeof ApiHandbookCompanySlugDocumentSlugRoute
+  '/api/people/$personId/employment': typeof ApiPeoplePersonIdEmploymentRoute
   '/api/people/$personId/photo': typeof ApiPeoplePersonIdPhotoRoute
   '/api/people/$personId/records': typeof ApiPeoplePersonIdRecordsRoute
   '/dashboard/people/$personId/edit': typeof DashboardPeoplePersonIdEditRoute
@@ -320,6 +328,7 @@ export interface FileRoutesByTo {
   '/dashboard/docs': typeof DashboardDocsIndexRoute
   '/dashboard/people': typeof DashboardPeopleIndexRoute
   '/api/handbook/$companySlug/$documentSlug': typeof ApiHandbookCompanySlugDocumentSlugRoute
+  '/api/people/$personId/employment': typeof ApiPeoplePersonIdEmploymentRoute
   '/api/people/$personId/photo': typeof ApiPeoplePersonIdPhotoRoute
   '/api/people/$personId/records': typeof ApiPeoplePersonIdRecordsRoute
   '/dashboard/people/$personId/edit': typeof DashboardPeoplePersonIdEditRoute
@@ -361,6 +370,7 @@ export interface FileRoutesById {
   '/dashboard/docs/': typeof DashboardDocsIndexRoute
   '/dashboard/people/': typeof DashboardPeopleIndexRoute
   '/api/handbook/$companySlug/$documentSlug': typeof ApiHandbookCompanySlugDocumentSlugRoute
+  '/api/people/$personId/employment': typeof ApiPeoplePersonIdEmploymentRoute
   '/api/people/$personId/photo': typeof ApiPeoplePersonIdPhotoRoute
   '/api/people/$personId/records': typeof ApiPeoplePersonIdRecordsRoute
   '/dashboard/people/$personId_/edit': typeof DashboardPeoplePersonIdEditRoute
@@ -403,6 +413,7 @@ export interface FileRouteTypes {
     | '/dashboard/docs/'
     | '/dashboard/people/'
     | '/api/handbook/$companySlug/$documentSlug'
+    | '/api/people/$personId/employment'
     | '/api/people/$personId/photo'
     | '/api/people/$personId/records'
     | '/dashboard/people/$personId/edit'
@@ -443,6 +454,7 @@ export interface FileRouteTypes {
     | '/dashboard/docs'
     | '/dashboard/people'
     | '/api/handbook/$companySlug/$documentSlug'
+    | '/api/people/$personId/employment'
     | '/api/people/$personId/photo'
     | '/api/people/$personId/records'
     | '/dashboard/people/$personId/edit'
@@ -483,6 +495,7 @@ export interface FileRouteTypes {
     | '/dashboard/docs/'
     | '/dashboard/people/'
     | '/api/handbook/$companySlug/$documentSlug'
+    | '/api/people/$personId/employment'
     | '/api/people/$personId/photo'
     | '/api/people/$personId/records'
     | '/dashboard/people/$personId_/edit'
@@ -764,6 +777,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHandbookCompanySlugDocumentSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/people/$personId/employment': {
+      id: '/api/people/$personId/employment'
+      path: '/employment'
+      fullPath: '/api/people/$personId/employment'
+      preLoaderRoute: typeof ApiPeoplePersonIdEmploymentRouteImport
+      parentRoute: typeof ApiPeoplePersonIdRoute
+    }
     '/api/people/$personId/photo': {
       id: '/api/people/$personId/photo'
       path: '/photo'
@@ -819,12 +839,14 @@ const ApiInvitationsRouteWithChildren = ApiInvitationsRoute._addFileChildren(
 )
 
 interface ApiPeoplePersonIdRouteChildren {
+  ApiPeoplePersonIdEmploymentRoute: typeof ApiPeoplePersonIdEmploymentRoute
   ApiPeoplePersonIdPhotoRoute: typeof ApiPeoplePersonIdPhotoRoute
   ApiPeoplePersonIdRecordsRoute: typeof ApiPeoplePersonIdRecordsRoute
   ApiPeoplePersonIdFilesDocumentIdRoute: typeof ApiPeoplePersonIdFilesDocumentIdRoute
 }
 
 const ApiPeoplePersonIdRouteChildren: ApiPeoplePersonIdRouteChildren = {
+  ApiPeoplePersonIdEmploymentRoute: ApiPeoplePersonIdEmploymentRoute,
   ApiPeoplePersonIdPhotoRoute: ApiPeoplePersonIdPhotoRoute,
   ApiPeoplePersonIdRecordsRoute: ApiPeoplePersonIdRecordsRoute,
   ApiPeoplePersonIdFilesDocumentIdRoute: ApiPeoplePersonIdFilesDocumentIdRoute,

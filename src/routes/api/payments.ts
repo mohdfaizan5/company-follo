@@ -37,8 +37,9 @@ export const Route = createFileRoute('/api/payments')({
         const paidOn = status === 'paid' ? body.paidOn : null
         if (status === 'paid' && (!paidOn || !/^\d{4}-\d{2}-\d{2}$/.test(paidOn) || Number.isNaN(Date.parse(paidOn)))) return json({ error: 'Enter the payment date.' }, 400)
         if (!body.employmentId) return json({ error: 'Choose a person.' }, 400)
-        const employment = (await sql`SELECT id FROM employments WHERE id = ${body.employmentId}::uuid AND company_id = ${scope.company.company_id} AND status <> 'ended'`).at(0)
-        if (!employment) return json({ error: 'Choose an active person in this company.' }, 400)
+        // Former people can still get a final settlement.
+        const employment = (await sql`SELECT id FROM employments WHERE id = ${body.employmentId}::uuid AND company_id = ${scope.company.company_id}`).at(0)
+        if (!employment) return json({ error: 'Choose a person in this company.' }, 400)
 
         const type = body.type?.trim().slice(0, 40) || 'Salary'
         const region = body.region?.trim().slice(0, 60) || null

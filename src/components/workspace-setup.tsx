@@ -5,6 +5,7 @@ import { Button } from '#/components/ui/button'
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from '#/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '#/components/ui/card'
 import { Input } from '#/components/ui/input'
+import { appToast } from '#/lib/toast'
 
 export function WorkspaceSetup() {
   const queryClient = useQueryClient()
@@ -27,8 +28,10 @@ export function WorkspaceSetup() {
       const payload = await response.json() as { error?: string }
       if (!response.ok) throw new Error(payload.error ?? 'Could not create your workspace.')
       await queryClient.invalidateQueries({ queryKey: ['workspace'] })
+      appToast.success('Workspace created', { description: 'Your company is ready to set up.' })
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not create your workspace.')
+      appToast.error('Workspace not created', cause, 'Could not create your workspace.')
     } finally {
       setSaving(false)
     }

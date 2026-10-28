@@ -9,6 +9,17 @@
         "dev"
       ],
       "port": 3000
+    },
+    {
+      "name": "dev-test",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": [
+        "-NoProfile",
+        "-Command",
+        "$env:BETTER_AUTH_URL='http://localhost:3101'; npx.cmd vite dev --port 3101 --strictPort"
+      ],
+      "port": 3101,
+      "autoPort": false
     }
   ]
 }

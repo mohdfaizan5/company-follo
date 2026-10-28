@@ -6,6 +6,8 @@ import {
   useRouterState,
 } from '@tanstack/react-router'
 import { useEffect } from 'react'
+import { Toaster } from 'sileo'
+import 'sileo/styles.css'
 import { CompanyFolloShell } from '../components/dashboard-shell'
 import { TooltipProvider } from '../components/ui/tooltip'
 
@@ -78,6 +80,12 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       >
         <TooltipProvider>
           {children}
+          <Toaster
+            position="bottom-center"
+            theme="dark"
+            offset={{ bottom: 24 }}
+            options={{ duration: 4500, roundness: 14, autopilot: true }}
+          />
           <Scripts />
         </TooltipProvider>
       </body>

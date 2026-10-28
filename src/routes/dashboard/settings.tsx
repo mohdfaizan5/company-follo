@@ -8,6 +8,7 @@ import { useWorkspace, workspaceQueryOptions } from '#/lib/workspace-client'
 import { Checkbox } from '#/components/ui/checkbox'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { CompanyLogoUpload } from '#/components/employee-uploads'
+import { appToast } from '#/lib/toast'
 
 type PermissionRule = { role: 'hr_admin' | 'employee'; resource: 'overview' | 'people' | 'calendar' | 'docs' | 'payroll' | 'expenses'; read: boolean; write: boolean }
 const resources = [
@@ -37,7 +38,7 @@ function SettingsContent() {
   return <><div className="grid gap-4 md:grid-cols-2">
     <Card><CardHeader><Building2 className="size-5 text-muted-foreground" /><CardTitle className="mt-3">Company</CardTitle><CardDescription>Your current company details.</CardDescription></CardHeader><CardContent className="flex flex-col gap-5"><CompanyLogoUpload logoUrl={workspace.logo_url} companyName={workspace.company_name} canEdit={workspace.role !== 'employee'} /><dl className="grid gap-3 text-sm"><Setting label="Organization" value={workspace.organization_name} /><Setting label="Company" value={workspace.company_name} /><Setting label="Default currency" value={workspace.default_currency} /></dl></CardContent></Card>
     <Card><CardHeader><ShieldCheck className="size-5 text-muted-foreground" /><CardTitle className="mt-3">Your access</CardTitle><CardDescription>Permissions for this workspace.</CardDescription></CardHeader><CardContent><Setting label="Role" value={workspace.role === 'hr_admin' ? 'HR admin' : workspace.role === 'owner' ? 'Owner' : 'Employee'} /></CardContent></Card>
-  </div>{workspace.role !== 'employee' && <WorkWeek workingDays={workspace.working_days ?? [1, 2, 3, 4, 5, 6]} />}{workspace.role === 'owner' && <PermissionMatrix />}</>
+  </div>{workspace.role !== 'employee' && <WorkWeek workingDays={workspace.working_days} />}{workspace.role === 'owner' && <PermissionMatrix />}</>
 }
 
 const weekdays = [
@@ -53,11 +54,12 @@ function WorkWeek({ workingDays }: { workingDays: number[] }) {
       const payload = await response.json() as { error?: string }
       if (!response.ok) throw new Error(payload.error ?? 'Could not save working days.')
     },
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['workspace'] }); void queryClient.invalidateQueries({ queryKey: ['time-off'] }) },
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['workspace'] }); void queryClient.invalidateQueries({ queryKey: ['time-off'] }); appToast.success('Work week saved') },
+    onError: (error) => appToast.error('Work week not saved', error, 'Could not save working days.'),
   })
   const offDays = weekdays.filter((day) => !workingDays.includes(Number(day.value))).map((day) => day.label)
   return <Card className="mt-5"><CardHeader><CalendarDays className="size-5 text-muted-foreground" /><CardTitle className="mt-3">Work week</CardTitle><CardDescription>Leave is only counted on working days. Days off are greyed out in the calendar.</CardDescription></CardHeader><CardContent className="flex flex-col gap-3">
-    <ToggleGroup multiple variant="outline" value={workingDays.map(String)} disabled={save.isPending} onValueChange={(value) => { if (value.length) save.mutate((value as string[]).map(Number)) }} aria-label="Working days">
+    <ToggleGroup multiple variant="outline" value={workingDays.map(String)} disabled={save.isPending} onValueChange={(value) => { if (value.length) save.mutate(value.map(Number)) }} aria-label="Working days">
       {weekdays.map((day) => <ToggleGroupItem key={day.value} value={day.value} className="w-12">{day.label}</ToggleGroupItem>)}
     </ToggleGroup>
     <p className="text-sm text-muted-foreground">{offDays.length ? `${offDays.join(', ')} ${offDays.length === 1 ? 'is a' : 'are'} weekly day${offDays.length === 1 ? '' : 's'} off.` : 'Every day is a working day.'}</p>
@@ -77,7 +79,7 @@ function PermissionMatrix() {
     const response = await fetch('/api/permissions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rule) })
     const payload = await response.json() as { error?: string }
     if (!response.ok) throw new Error(payload.error ?? 'Could not save permission.')
-  }, onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['permissions'] }); void queryClient.invalidateQueries({ queryKey: ['workspace'] }) } })
+  }, onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['permissions'] }); void queryClient.invalidateQueries({ queryKey: ['workspace'] }); appToast.success('Permission updated') }, onError: (error) => appToast.error('Permission not saved', error, 'Could not save permission.') })
   function toggle(rule: PermissionRule, action: 'read' | 'write', checked: boolean) {
     save.mutate({ ...rule, read: action === 'write' && checked ? true : action === 'read' ? checked : rule.read, write: action === 'read' && !checked ? false : action === 'write' ? checked : rule.write })
   }

@@ -1,7 +1,7 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
-import { ArrowDown, ArrowUp, ListFilter, Network, Plus, Search, SlidersHorizontal, Users } from 'lucide-react'
+import { ArrowDown, ArrowUp, ListFilter, Network, Plus, Search, SlidersHorizontal, UserMinus, Users } from 'lucide-react'
 import { TeamEmptyState } from '#/components/team-empty-state'
 import { DashboardPage } from '#/components/dashboard-page'
 import { TableSkeleton } from '#/components/page-skeletons'
@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
 import { Button } from '#/components/ui/button'
 import { Menu, MenuCheckboxItem, MenuGroup, MenuGroupLabel, MenuPopup, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from '#/components/ui/menu'
 import { Tabs, TabsList, TabsPanel, TabsTab } from '#/components/ui/tabs'
-import { peopleQueryOptions, personName } from '#/lib/people-client'
+import { formerPeopleQueryOptions, peopleQueryOptions, personName } from '#/lib/people-client'
 import { useWorkspace, workspaceQueryOptions } from '#/lib/workspace-client'
 import type { Person } from '#/lib/people-client'
 import { cn } from '#/lib/utils'
@@ -45,12 +45,16 @@ function People() {
           <TabsList>
             <TabsTab value="list"><Users />List</TabsTab>
             <TabsTab value="tree"><Network />Reporting tree</TabsTab>
+            <TabsTab value="former"><UserMinus />Former</TabsTab>
           </TabsList>
           <TabsPanel value="list" className="mt-4">
             <PeopleTable people={people.data} />
           </TabsPanel>
           <TabsPanel value="tree" className="mt-4">
             <ReportingTree people={people.data} />
+          </TabsPanel>
+          <TabsPanel value="former" className="mt-4">
+            <FormerPeople />
           </TabsPanel>
         </Tabs>
       ) : null}
@@ -166,6 +170,50 @@ function PeopleTable({ people }: { people: Person[] }) {
           )
         }) : <p className="px-3 py-10 text-center text-muted-foreground">No one matches.</p>}
       </div>
+    </div>
+  )
+}
+
+const exitLabels: Record<string, string> = { resigned: 'Resigned', let_go: 'Let go', contract_ended: 'Contract ended', internship_ended: 'Internship ended', other: 'Other' }
+
+/** People who have left. Records are kept for history; open one to rehire or, as owner, delete it for good. */
+function FormerPeople() {
+  const former = useQuery(formerPeopleQueryOptions)
+  const format = (value: string) => new Date(`${value}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+  if (former.isPending) return <TableSkeleton rows={3} />
+  if (former.isError) return <p className="text-sm text-destructive">{former.error.message}</p>
+  if (!former.data.length) return <p className="rounded-xl border px-4 py-10 text-center text-sm text-muted-foreground">No one has left yet. People you let go appear here with their records intact.</p>
+  const grid = 'grid grid-cols-[minmax(10rem,1fr)_8rem] items-center gap-4 px-3 md:grid-cols-[minmax(12rem,1.4fr)_minmax(0,1fr)_7rem_7rem_9rem]'
+  return (
+    <div role="table" aria-label="Former people" className="text-sm">
+      <div role="row" className={cn(grid, 'py-2 text-muted-foreground')}>
+        <span role="columnheader">Name</span>
+        <span role="columnheader" className="max-md:hidden">Role</span>
+        <span role="columnheader" className="max-md:hidden">Joined</span>
+        <span role="columnheader">Left</span>
+        <span role="columnheader" className="max-md:hidden">Reason</span>
+      </div>
+      {former.data.map((person) => {
+        const name = personName(person)
+        return (
+          <Link key={person.id} role="row" to="/dashboard/people/$personId" params={{ personId: person.id }} className={cn(grid, 'rounded-lg py-2.5 no-underline transition-colors hover:bg-accent/50')}>
+            <span role="cell" className="flex min-w-0 items-center gap-3">
+              <Avatar className="size-8 opacity-64 grayscale">
+                {person.avatar_url && <AvatarImage src={person.avatar_url} alt="" />}
+                <AvatarFallback className="text-[11px]">{initialsOf(name)}</AvatarFallback>
+              </Avatar>
+              <span className="min-w-0">
+                <span className="block truncate font-medium">{name}</span>
+                <span className="block truncate text-muted-foreground">{person.department ?? 'No team'}</span>
+              </span>
+            </span>
+            <span role="cell" className="truncate max-md:hidden">{person.title}</span>
+            <span role="cell" className="tabular-nums text-muted-foreground max-md:hidden">{format(person.start_date)}</span>
+            <span role="cell" className="tabular-nums">{person.end_date ? format(person.end_date) : '—'}</span>
+            <span role="cell" className="max-md:hidden"><span className="rounded-md bg-secondary px-2 py-0.5 text-xs font-medium">{exitLabels[person.end_reason ?? ''] ?? 'Left'}</span></span>
+          </Link>
+        )
+      })}
     </div>
   )
 }

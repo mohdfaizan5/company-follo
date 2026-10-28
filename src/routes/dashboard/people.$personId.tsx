@@ -1,10 +1,11 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { CalendarDays, CircleDollarSign, Ellipsis, Mail, Network, Pencil, Plus, Receipt, Send, UserRound, Users, Wallet, X } from 'lucide-react'
+import { CalendarDays, CircleDollarSign, Ellipsis, Mail, Network, Pencil, Plus, Receipt, RotateCcw, Send, Trash2, UserMinus, UserRound, Users, Wallet, X } from 'lucide-react'
 import { DashboardPage } from '#/components/dashboard-page'
 import { ProfileSkeleton } from '#/components/page-skeletons'
 import { EmployeeDocumentUpload, EmployeePhotoUpload } from '#/components/employee-uploads'
+import { appToast } from '#/lib/toast'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
 import { Badge } from '#/components/ui/badge'
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '#/components/ui/breadcrumb'
@@ -18,7 +19,7 @@ import { NativeSelect, NativeSelectOption } from '#/components/ui/native-select'
 import { Progress } from '#/components/ui/progress'
 import { Separator } from '#/components/ui/separator'
 import { Textarea } from '#/components/ui/textarea'
-import { getPersonProfile, personName } from '#/lib/people-client'
+import { getPersonProfile, peopleQueryOptions, personName } from '#/lib/people-client'
 import type { Invitation, PersonProfile as Profile } from '#/lib/people-client'
 import { useWorkspace, workspaceQueryOptions } from '#/lib/workspace-client'
 
@@ -56,13 +57,26 @@ function ProfileContent({ personId }: { personId: string }) {
   const profile = useQuery({ queryKey: ['person', personId], queryFn: () => getPersonProfile(personId), staleTime: 60_000 })
   const workspace = useWorkspace(true)
   const [inviteOpen, setInviteOpen] = useState(false)
+  const [leaving, setLeaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const queryClient = useQueryClient()
+  const rehire = useMutation({
+    mutationFn: () => employmentAction(personId, { action: 'rehire' }),
+    // Wait for the refreshed record so the banner and menu change together with the button.
+    onSuccess: () => { appToast.success('Person rehired'); return Promise.all([queryClient.invalidateQueries({ queryKey: ['person', personId] }), queryClient.invalidateQueries({ queryKey: ['people'] })]) },
+    onError: (error) => appToast.error('Person not rehired', error, 'Could not rehire this person.'),
+  })
   if (profile.isPending) return <ProfileSkeleton />
   if (profile.isError) return <p className="text-sm text-destructive">{profile.error.message}</p>
   const { person, invitation, compensation, payments, expenses, documents, uploadsEnabled, canWritePeople, payrollAllowed, expensesAllowed } = profile.data
   const name = personName(person)
   const initials = name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()
   const manager = person.manager_first_name ? `${person.manager_first_name} ${person.manager_last_name ?? ''}`.trim() : null
-  const canInvite = canWritePeople && workspace.data?.role !== 'employee'
+  const former = person.status === 'ended'
+  // A former person's record is kept as it was; only Rehire and permanent delete change it.
+  const canEdit = canWritePeople && !former
+  const canManage = canWritePeople && workspace.data?.role !== 'employee'
+  const canInvite = canEdit && workspace.data?.role !== 'employee'
   const avatar = <Avatar className="size-20 sm:size-24">{person.avatar_url && <AvatarImage src={person.avatar_url} alt={name} />}<AvatarFallback className="bg-primary/16 text-2xl font-semibold text-primary">{initials}</AvatarFallback></Avatar>
 
   return <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
@@ -77,12 +91,15 @@ function ProfileContent({ personId }: { personId: string }) {
       </Breadcrumb>
       <div className="flex items-center gap-2">
         {canInvite && <Button variant="outline" disabled={!person.personal_email} onClick={() => setInviteOpen(true)}><Send data-icon="inline-start" />Invite</Button>}
-        {canWritePeople && <Button variant="outline" render={<Link to="/dashboard/people/$personId/edit" params={{ personId: person.id }} />}><Pencil data-icon="inline-start" />Edit details</Button>}
+        {canEdit && <Button variant="outline" render={<Link to="/dashboard/people/$personId/edit" params={{ personId: person.id }} />}><Pencil data-icon="inline-start" />Edit details</Button>}
         <Menu>
           <MenuTrigger render={<Button variant="outline" size="icon" aria-label="More actions" />}><Ellipsis /></MenuTrigger>
           <MenuPopup align="end">
-            <MenuItem onClick={() => { void navigator.clipboard.writeText(window.location.href) }}>Copy profile link</MenuItem>
+            <MenuItem onClick={() => { void navigator.clipboard.writeText(window.location.href).then(() => appToast.info('Profile link copied')).catch((error) => appToast.error('Link not copied', error, 'Could not copy the profile link.')) }}>Copy profile link</MenuItem>
             <MenuItem render={<Link to="/dashboard/people" />}><Network />Open reporting tree</MenuItem>
+            {canManage && !former && <MenuItem variant="destructive" onClick={() => setLeaving(true)}><UserMinus />Let go…</MenuItem>}
+            {canManage && former && <MenuItem onClick={() => rehire.mutate()}><RotateCcw />Rehire</MenuItem>}
+            {canManage && former && workspace.data?.role === 'owner' && <MenuItem variant="destructive" onClick={() => setDeleting(true)}><Trash2 />Delete permanently…</MenuItem>}
           </MenuPopup>
         </Menu>
       </div>
@@ -90,7 +107,7 @@ function ProfileContent({ personId }: { personId: string }) {
 
     {/* ── Header: photo (click to change), name, role · company, joined + invitation badges ── */}
     <header className="flex flex-wrap items-center gap-5">
-      {canWritePeople ? <EmployeePhotoUpload personId={person.id} enabled={uploadsEnabled}>{avatar}</EmployeePhotoUpload> : avatar}
+      {canEdit ? <EmployeePhotoUpload personId={person.id} enabled={uploadsEnabled}>{avatar}</EmployeePhotoUpload> : avatar}
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="font-heading text-3xl font-bold tracking-tight text-balance">{name}</h1>
@@ -98,16 +115,28 @@ function ProfileContent({ personId }: { personId: string }) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" size="lg"><CalendarDays aria-hidden="true" />Joined {formatDate(person.start_date)}</Badge>
-          <Badge variant={invitation === 'accepted' ? 'success' : 'outline'} size="lg"><Mail aria-hidden="true" />{invitationLabel[invitation]}</Badge>
+          {former && person.end_date
+            ? <Badge variant="error" size="lg"><UserMinus aria-hidden="true" />Left {formatDate(person.end_date)}</Badge>
+            : <Badge variant={invitation === 'accepted' ? 'success' : 'outline'} size="lg"><Mail aria-hidden="true" />{invitationLabel[invitation]}</Badge>}
         </div>
       </div>
     </header>
+
+    {former && <div className="flex flex-wrap items-start gap-3 rounded-xl border border-destructive/24 bg-destructive/6 px-4 py-3 text-sm">
+      <UserMinus className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden="true" />
+      <div className="min-w-0 flex-1">
+        <p className="font-medium">{name} {person.end_reason === 'resigned' ? 'resigned' : person.end_reason === 'let_go' ? 'was let go' : person.end_reason === 'contract_ended' ? 'finished their contract' : person.end_reason === 'internship_ended' ? 'finished their internship' : 'left'}{person.end_date ? ` on ${formatDate(person.end_date)}` : ''}.</p>
+        <p className="text-muted-foreground">{person.exit_note ? `${person.exit_note.trim().replace(/[.!?]?$/, '.')} ` : ''}Their record is kept for history and hidden from People, Calendar and new payments. They can no longer sign in.</p>
+      </div>
+      {canManage && <Button size="sm" variant="outline" loading={rehire.isPending} onClick={() => rehire.mutate()}><RotateCcw data-icon="inline-start" />Rehire</Button>}
+      {rehire.isError && <p className="w-full text-destructive">{rehire.error.message}</p>}
+    </div>}
 
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
       {/* ── Main column ── */}
       <div className="flex min-w-0 flex-col gap-8">
         {/* Setup checklist: progress bar + chips for each missing detail; opens Edit details */}
-        {canWritePeople && <SetupChecklist person={person} />}
+        {canEdit && <SetupChecklist person={person} />}
 
         {/* Records: compensation, payments, expenses */}
         {(payrollAllowed || expensesAllowed) && <section className="flex flex-col gap-3">
@@ -116,7 +145,7 @@ function ProfileContent({ personId }: { personId: string }) {
             {payrollAllowed && <RecordRow
               icon={<Wallet aria-hidden="true" />} title="Compensation"
               summary={compensation.length ? `${compensation.length} record${compensation.length === 1 ? '' : 's'} · latest ${formatMoney(compensation[0].amount, compensation[0].currency)} ${compensation[0].kind}` : 'No salary or bonus records yet'}
-              actions={canWritePeople ? <AddRecord personId={person.id} type="compensation" label="Add record" /> : null}
+              actions={canEdit ? <AddRecord personId={person.id} type="compensation" label="Add record" /> : null}
               items={compensation.slice(0, 3).map((record) => ({ id: record.id, label: <span className="capitalize">{record.kind}</span>, hint: `From ${formatDate(record.effective_from)}`, value: formatMoney(record.amount, record.currency) }))}
             />}
             {payrollAllowed && <RecordRow
@@ -126,7 +155,7 @@ function ProfileContent({ personId }: { personId: string }) {
             />}
             {expensesAllowed && <RecordRow
               icon={<Receipt aria-hidden="true" />} title="Expenses" summary={expenses.length ? `${expenses.length} linked to this person` : 'None linked to this person'}
-              actions={canWritePeople ? <AddRecord personId={person.id} type="expense" label="Add expense" /> : null}
+              actions={canEdit ? <AddRecord personId={person.id} type="expense" label="Add expense" /> : null}
               items={expenses.slice(0, 3).map((expense) => ({ id: expense.id, label: expense.label, hint: formatDate(expense.incurred_on), value: formatMoney(expense.amount, expense.currency) }))}
             />}
           </Card>
@@ -145,22 +174,24 @@ function ProfileContent({ personId }: { personId: string }) {
                   <a className="block truncate font-medium underline-offset-2 hover:underline" href={`/api/people/${person.id}/files/${document.id}`} target="_blank" rel="noreferrer">{document.display_name || document.file_name}</a>
                   <span className="text-xs capitalize text-muted-foreground">{document.kind.replaceAll('_', ' ')}</span>
                 </div>
-                {canWritePeople && <RenameDocument personId={person.id} document={document} />}
+                {canEdit && <RenameDocument personId={person.id} document={document} />}
               </li>)}
             </ul>}
-            {canWritePeople ? <EmployeeDocumentUpload personId={person.id} enabled={uploadsEnabled} /> : documents.length === 0 ? <p className="text-sm text-muted-foreground">No documents on this record.</p> : null}
+            {canEdit ? <EmployeeDocumentUpload personId={person.id} enabled={uploadsEnabled} /> : documents.length === 0 ? <p className="text-sm text-muted-foreground">No documents on this record.</p> : null}
           </Card>
         </section>
 
         {/* Notes: coss Textarea styled as in the p-textarea-9 particle (muted fill, no border or shadow) */}
-        <NotesCard person={person} canWrite={canWritePeople} />
+        <NotesCard person={person} canWrite={canEdit} />
       </div>
 
       {/* ── Details sidebar: work / personal / access ── */}
-      <DetailsCard person={person} manager={manager} invitation={invitation} canWrite={canWritePeople} canInvite={canInvite} onInvite={() => setInviteOpen(true)} />
+      <DetailsCard person={person} manager={manager} invitation={invitation} canWrite={canEdit} canInvite={canInvite} onInvite={() => setInviteOpen(true)} />
     </div>
 
     {/* The invite dialog is controlled so the header button and the sidebar "Send" action can both open it */}
+    {leaving && <LetGoDialog person={person} onClose={() => setLeaving(false)} />}
+    {deleting && <DeletePersonDialog person={person} onClose={() => setDeleting(false)} />}
     {canInvite && <InvitePerson person={person} isOwner={workspace.data?.role === 'owner'} open={inviteOpen} onOpenChange={setInviteOpen} />}
   </div>
 }
@@ -242,7 +273,9 @@ function AddRecord({ personId, type, label }: { personId: string; type: 'compens
     onSuccess: async () => {
       await Promise.all([queryClient.invalidateQueries({ queryKey: ['person', personId] }), queryClient.invalidateQueries({ queryKey: ['overview'] })])
       setOpen(false)
+      appToast.success(compensation ? 'Compensation record saved' : 'Expense saved')
     },
+    onError: (error) => appToast.error('Record not saved', error, 'Could not save this record.'),
   })
   function change(next: boolean) {
     if (next) { save.reset(); setKind('salary'); setText(''); setAmount(''); setCurrency('INR'); setDate(new Date().toISOString().slice(0, 10)); setNotes('') }
@@ -372,7 +405,8 @@ function InvitePerson({ person, isOwner, open, onOpenChange }: { person: Profile
       if (!response.ok || !payload.url) throw new Error(payload.error ?? 'Could not create invitation.')
       return payload.url
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['person', person.id] }),
+    onSuccess: () => { appToast.success('Setup link created', { description: 'Copy it and send it to the person.' }); return queryClient.invalidateQueries({ queryKey: ['person', person.id] }) },
+    onError: (error) => appToast.error('Setup link not created', error, 'Could not create the invitation.'),
   })
   return <Dialog open={open} onOpenChange={(next) => { onOpenChange(next); if (!next) { invite.reset(); setCopied(false) } }}>
     <DialogPopup>
@@ -380,7 +414,7 @@ function InvitePerson({ person, isOwner, open, onOpenChange }: { person: Profile
       <DialogPanel className="flex flex-col gap-4">
         <Field><FieldLabel>Access role</FieldLabel><NativeSelect className="w-full" value={role} onChange={(event) => setRole(event.target.value as 'employee' | 'hr_admin')}><NativeSelectOption value="employee">Employee</NativeSelectOption>{isOwner && <NativeSelectOption value="hr_admin">HR admin</NativeSelectOption>}</NativeSelect></Field>
         <p className="text-xs leading-5 text-muted-foreground">Their role controls which areas they can read or change. The owner can edit permissions in Settings.</p>
-        {invite.data && <Field><FieldLabel>Setup link</FieldLabel><Input readOnly value={invite.data} onFocus={(event) => event.target.select()} /><Button type="button" variant="outline" onClick={() => { void navigator.clipboard.writeText(invite.data).then(() => setCopied(true)) }}>{copied ? 'Copied' : 'Copy link'}</Button></Field>}
+        {invite.data && <Field><FieldLabel>Setup link</FieldLabel><Input readOnly value={invite.data} onFocus={(event) => event.target.select()} /><Button type="button" variant="outline" onClick={() => { void navigator.clipboard.writeText(invite.data).then(() => { setCopied(true); appToast.info('Setup link copied') }).catch((error) => appToast.error('Link not copied', error, 'Could not copy the setup link.')) }}>{copied ? 'Copied' : 'Copy link'}</Button></Field>}
         {invite.isError && <p role="alert" className="text-sm text-destructive">{invite.error.message}</p>}
       </DialogPanel>
       <DialogFooter><DialogClose render={<Button variant="ghost" />}>Close</DialogClose><Button type="button" loading={invite.isPending} onClick={() => invite.mutate()}><UserRound data-icon="inline-start" />{invite.data ? 'Regenerate link' : 'Create link'}</Button></DialogFooter>
@@ -397,7 +431,7 @@ function RenameDocument({ personId, document }: { personId: string; document: Pr
       const response = await fetch(`/api/people/${personId}/files/${document.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ displayName: name }) })
       const payload = await response.json() as { error?: string }
       if (!response.ok) throw new Error(payload.error ?? 'Could not rename document.')
-    }, onSuccess: () => { setOpen(false); void queryClient.invalidateQueries({ queryKey: ['person', personId] }) }
+    }, onSuccess: () => { setOpen(false); void queryClient.invalidateQueries({ queryKey: ['person', personId] }); appToast.success('Document renamed') }, onError: (error) => appToast.error('Document not renamed', error, 'Could not rename the document.')
   })
   return <>
     <Button size="sm" variant="ghost" onClick={() => setOpen(true)}>Rename</Button>
@@ -411,4 +445,126 @@ function RenameDocument({ personId, document }: { personId: string; document: Pr
       </DialogPopup>
     </Dialog>
   </>
+}
+
+async function employmentAction(personId: string, body: object) {
+  const response = await fetch(`/api/people/${personId}/employment`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  const payload = await response.json() as { error?: string; reassigned?: number; cancelledLeave?: number; accessRemoved?: boolean; openPayments?: number }
+  if (!response.ok) throw new Error(payload.error ?? 'Could not update this person.')
+  return payload
+}
+
+const exitReasons = [
+  { value: 'resigned', label: 'Resigned' },
+  { value: 'let_go', label: 'Let go' },
+  { value: 'contract_ended', label: 'Contract ended' },
+  { value: 'internship_ended', label: 'Internship ended' },
+  { value: 'other', label: 'Other' },
+]
+
+/** Ends someone's employment. Their records stay; they disappear from day-to-day views and lose sign-in access. */
+function LetGoDialog({ person, onClose }: { person: Profile['person']; onClose: () => void }) {
+  const queryClient = useQueryClient()
+  const people = useQuery(peopleQueryOptions)
+  const today = new Date().toISOString().slice(0, 10)
+  const [endDate, setEndDate] = useState(today)
+  const [reason, setReason] = useState(/intern/i.test(person.title) ? 'internship_ended' : 'resigned')
+  const [note, setNote] = useState('')
+  const reports = (people.data ?? []).filter((item) => item.manager_employment_id === person.employment_id)
+  const others = (people.data ?? []).filter((item) => item.employment_id !== person.employment_id)
+  const [reassignTo, setReassignTo] = useState(person.manager_employment_id ?? '')
+  const name = personName(person)
+  const end = useMutation({
+    mutationFn: () => employmentAction(person.id, { action: 'end', endDate, reason, note, reassignTo: reassignTo || null }),
+    onSuccess: async () => {
+      await Promise.all(['person', 'people', 'time-off', 'overview', 'payments'].map((key) => queryClient.invalidateQueries({ queryKey: [key] })))
+      onClose()
+      appToast.warning('Employment ended', { description: `${name}'s history has been retained.` })
+    },
+    onError: (error) => appToast.error('Employment not ended', error, 'Could not update this person.'),
+  })
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogPopup>
+        <DialogHeader>
+          <DialogTitle>Let {person.first_name} go</DialogTitle>
+          <DialogDescription>{name}’s record, pay history and documents are kept. They are hidden from People, the calendar and new payments, and can be rehired later.</DialogDescription>
+        </DialogHeader>
+        <form className="contents" onSubmit={(event) => { event.preventDefault(); end.mutate() }}>
+          <DialogPanel className="flex flex-col gap-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-1.5 text-sm font-medium">Last working day<Input required type="date" min={person.start_date} max={today} value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
+              <label className="flex flex-col gap-1.5 text-sm font-medium">Reason
+                <NativeSelect value={reason} onChange={(event) => setReason(event.target.value)}>
+                  {exitReasons.map((item) => <NativeSelectOption key={item.value} value={item.value}>{item.label}</NativeSelectOption>)}
+                </NativeSelect>
+              </label>
+            </div>
+            {reports.length > 0 && (
+              <label className="flex flex-col gap-1.5 text-sm font-medium">
+                {reports.length} {reports.length === 1 ? 'person reports' : 'people report'} to {person.first_name}. Move them to
+                <NativeSelect value={reassignTo} onChange={(event) => setReassignTo(event.target.value)}>
+                  <NativeSelectOption value="">No manager</NativeSelectOption>
+                  {others.map((item) => <NativeSelectOption key={item.employment_id} value={item.employment_id}>{personName(item)}</NativeSelectOption>)}
+                </NativeSelect>
+              </label>
+            )}
+            <label className="flex flex-col gap-1.5 text-sm font-medium">Note<Textarea value={note} placeholder="Optional, for HR only. e.g. Notice period served, laptop returned." onChange={(event) => setNote(event.target.value)} /></label>
+            <ul className="flex list-disc flex-col gap-1 rounded-lg bg-muted/60 py-2.5 pr-3 pl-7 text-xs leading-5 text-muted-foreground">
+              <li>Their sign-in stops working for this workspace right away.</li>
+              <li>Leave waiting for approval, and approved leave after the last day, is cancelled.</li>
+              <li>Draft and scheduled payments stay, so you can still pay a final settlement.</li>
+            </ul>
+            {end.isError && <p className="text-sm text-destructive">{end.error.message}</p>}
+          </DialogPanel>
+          <DialogFooter>
+            <DialogClose render={<Button variant="ghost" />}>Cancel</DialogClose>
+            <Button type="submit" variant="destructive" loading={end.isPending}>Let {person.first_name} go</Button>
+          </DialogFooter>
+        </form>
+      </DialogPopup>
+    </Dialog>
+  )
+}
+
+/** The only place a person's records are removed for good. Owner only, and only after they have left. */
+function DeletePersonDialog({ person, onClose }: { person: Profile['person']; onClose: () => void }) {
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const name = personName(person)
+  const [confirm, setConfirm] = useState('')
+  const remove = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/people/${person.id}/employment`, { method: 'DELETE' })
+      const payload = await response.json() as { error?: string }
+      if (!response.ok) throw new Error(payload.error ?? 'Could not delete this record.')
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['people'] })
+      queryClient.removeQueries({ queryKey: ['person', person.id] })
+      appToast.warning('Person deleted', { description: 'Their profile and related records were removed.' })
+      await navigate({ to: '/dashboard/people' })
+    },
+    onError: (error) => appToast.error('Person not deleted', error, 'Could not delete this record.'),
+  })
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogPopup>
+        <DialogHeader>
+          <DialogTitle>Delete {name} permanently?</DialogTitle>
+          <DialogDescription>This removes their profile, leave, payments, compensation and uploaded documents. It can’t be undone. Company expenses they logged stay, without their name.</DialogDescription>
+        </DialogHeader>
+        <form className="contents" onSubmit={(event) => { event.preventDefault(); remove.mutate() }}>
+          <DialogPanel className="flex flex-col gap-3">
+            <label className="flex flex-col gap-1.5 text-sm font-medium">Type <span className="font-semibold">{name}</span> to confirm<Input value={confirm} autoComplete="off" onChange={(event) => setConfirm(event.target.value)} /></label>
+            {remove.isError && <p className="text-sm text-destructive">{remove.error.message}</p>}
+          </DialogPanel>
+          <DialogFooter>
+            <DialogClose render={<Button variant="ghost" />}>Cancel</DialogClose>
+            <Button type="submit" variant="destructive" disabled={confirm.trim() !== name} loading={remove.isPending}><Trash2 data-icon="inline-start" />Delete permanently</Button>
+          </DialogFooter>
+        </form>
+      </DialogPopup>
+    </Dialog>
+  )
 }
