@@ -86,7 +86,10 @@
     "uploadthing": "^7.7.4",
     "vaul": "^1.1.2",
     "ws": "^8.22.0",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "@vercel/connect": "2.5.2",
+    "ai": "^7.0.137",
+    "eve": "^0.85.0"
   },
   "devDependencies": {
     "@rolldown/plugin-babel": "^0.2.3",
@@ -104,6 +107,7 @@
     "@vitejs/plugin-react": "^6.0.1",
     "babel-plugin-react-compiler": "^1.0.0",
     "eslint": "^9.20.0",
+    "just-bash": "^3.6.0",
     "prettier": "^3.8.1",
     "react-grab": "^0.2.0",
     "typescript": "^6.0.2",
@@ -114,5 +118,8 @@
       "esbuild",
       "lightningcss"
     ]
+  },
+  "engines": {
+    "node": "24.x"
   }
 }

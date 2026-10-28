@@ -10,6 +10,7 @@ dist-ssr
 .tanstack
 .wrangler
 .output
+.eve
 .vinxi
 __unconfig*
 todos.json

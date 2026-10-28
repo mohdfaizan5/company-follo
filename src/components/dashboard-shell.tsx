@@ -6,7 +6,7 @@ import {
   CalendarDays,
   FileText,
   LayoutDashboard,
-  Settings,
+  Sparkles,
   UserRound,
   Users,
 } from 'lucide-react'
@@ -23,8 +23,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
+  SidebarRail,
   useSidebar,
 } from '#/components/ui/sidebar'
+import { NavUser } from '#/components/nav-user'
+import { CompanySwitcher } from './company-switcher'
 
 const navigation = [
   {
@@ -41,6 +44,12 @@ const navigation = [
     resource: 'calendar',
   },
   { to: '/dashboard/docs', label: 'Docs', icon: FileText, resource: 'docs' },
+  {
+    to: '/dashboard/agent',
+    label: 'Agent',
+    icon: Sparkles,
+    resource: 'agent',
+  },
   {
     to: '/dashboard/payroll',
     label: 'Payroll',
@@ -62,21 +71,13 @@ function AppSidebar() {
   return (
     <Sidebar className="max-w-60" collapsible="icon">
       <SidebarHeader>
-        <Link
-          to="/dashboard"
-          onClick={closeMobile}
-          aria-label="CompanyFollo overview"
-          className="flex h-9 min-w-0 items-center gap-2 rounded-md px-2 text-sm font-semibold tracking-[-0.02em] text-sidebar-foreground no-underline group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
-        >
-          <img src="/logo.svg" alt="" className="size-5 shrink-0" />
-          <span className="flex min-w-0 items-center gap-1 group-data-[collapsible=icon]:hidden">
-            <span className="shrink-0">CompanyFollo</span>
-            {workspace && <>
-              <span aria-hidden="true" className="px-0.5 font-normal text-muted-foreground">×</span>
-              <span className="truncate" title={workspace.company_name}>{workspace.company_name}</span>
-            </>}
-          </span>
-        </Link>
+        {workspace ? (
+          <CompanySwitcher
+            companyName={workspace.company_name}
+            organizationName={workspace.organization_name}
+            logoUrl={workspace.logo_url}
+          />
+        ) : null}
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -86,7 +87,10 @@ function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   render={<Link to="/dashboard/me" onClick={closeMobile} />}
-                  isActive={pathname === '/dashboard/me' || pathname.startsWith('/dashboard/handbook')}
+                  isActive={
+                    pathname === '/dashboard/me' ||
+                    pathname.startsWith('/dashboard/handbook')
+                  }
                   tooltip="My space"
                 >
                   <UserRound />
@@ -97,7 +101,9 @@ function AppSidebar() {
                 // Without access to the company calendar, people still see holidays and their own leave.
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    render={<Link to="/dashboard/my-calendar" onClick={closeMobile} />}
+                    render={
+                      <Link to="/dashboard/my-calendar" onClick={closeMobile} />
+                    }
                     isActive={pathname === '/dashboard/my-calendar'}
                     tooltip="Calendar"
                   >
@@ -107,7 +113,11 @@ function AppSidebar() {
                 </SidebarMenuItem>
               )}
               {navigation
-                .filter(({ resource }) => workspace?.permissions[resource].read && !(resource === 'overview' && workspace.role === 'employee'))
+                .filter(
+                  ({ resource }) =>
+                    workspace?.permissions[resource].read &&
+                    !(resource === 'overview' && workspace.role === 'employee'),
+                )
                 .map(({ to, label, icon: Icon }) => (
                   <SidebarMenuItem key={to}>
                     <SidebarMenuButton
@@ -128,7 +138,15 @@ function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <SidebarMenu>
+        <NavUser
+          user={{
+            name: session?.user.name ?? 'User',
+            email: session?.user.email ?? '',
+            image: session?.user.image,
+          }}
+        />
+        <SidebarRail />
+        {/* <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               render={<Link to="/dashboard/settings" onClick={closeMobile} />}
@@ -139,7 +157,7 @@ function AppSidebar() {
               <span>Settings</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-        </SidebarMenu>
+        </SidebarMenu> */}
       </SidebarFooter>
     </Sidebar>
   )

@@ -24,6 +24,8 @@ import { Route as ApiUploadConfigRouteImport } from './routes/api/upload-config'
 import { Route as ApiUploadthingRouteImport } from './routes/api/uploadthing'
 import { Route as ApiWorkspaceRouteImport } from './routes/api/workspace'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as DashboardAgentRouteImport } from './routes/dashboard/agent'
+import { Route as DashboardAssistantRouteImport } from './routes/dashboard/assistant'
 import { Route as DashboardMeRouteImport } from './routes/dashboard/me'
 import { Route as DashboardMyCalendarRouteImport } from './routes/dashboard/my-calendar'
 import { Route as DashboardPayrollRouteImport } from './routes/dashboard/payroll'
@@ -122,6 +124,16 @@ const ApiWorkspaceRoute = ApiWorkspaceRouteImport.update({
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/dashboard/',
   path: '/dashboard/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardAgentRoute = DashboardAgentRouteImport.update({
+  id: '/dashboard/agent',
+  path: '/dashboard/agent',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardAssistantRoute = DashboardAssistantRouteImport.update({
+  id: '/dashboard/assistant',
+  path: '/dashboard/assistant',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardMeRoute = DashboardMeRouteImport.update({
@@ -267,6 +279,8 @@ export interface FileRoutesByFullPath {
   '/api/upload-config': typeof ApiUploadConfigRoute
   '/api/uploadthing': typeof ApiUploadthingRoute
   '/api/workspace': typeof ApiWorkspaceRoute
+  '/dashboard/agent': typeof DashboardAgentRoute
+  '/dashboard/assistant': typeof DashboardAssistantRoute
   '/dashboard/me': typeof DashboardMeRoute
   '/dashboard/my-calendar': typeof DashboardMyCalendarRoute
   '/dashboard/payroll': typeof DashboardPayrollRoute
@@ -308,6 +322,8 @@ export interface FileRoutesByTo {
   '/api/upload-config': typeof ApiUploadConfigRoute
   '/api/uploadthing': typeof ApiUploadthingRoute
   '/api/workspace': typeof ApiWorkspaceRoute
+  '/dashboard/agent': typeof DashboardAgentRoute
+  '/dashboard/assistant': typeof DashboardAssistantRoute
   '/dashboard/me': typeof DashboardMeRoute
   '/dashboard/my-calendar': typeof DashboardMyCalendarRoute
   '/dashboard/payroll': typeof DashboardPayrollRoute
@@ -350,6 +366,8 @@ export interface FileRoutesById {
   '/api/upload-config': typeof ApiUploadConfigRoute
   '/api/uploadthing': typeof ApiUploadthingRoute
   '/api/workspace': typeof ApiWorkspaceRoute
+  '/dashboard/agent': typeof DashboardAgentRoute
+  '/dashboard/assistant': typeof DashboardAssistantRoute
   '/dashboard/me': typeof DashboardMeRoute
   '/dashboard/my-calendar': typeof DashboardMyCalendarRoute
   '/dashboard/payroll': typeof DashboardPayrollRoute
@@ -393,6 +411,8 @@ export interface FileRouteTypes {
     | '/api/upload-config'
     | '/api/uploadthing'
     | '/api/workspace'
+    | '/dashboard/agent'
+    | '/dashboard/assistant'
     | '/dashboard/me'
     | '/dashboard/my-calendar'
     | '/dashboard/payroll'
@@ -434,6 +454,8 @@ export interface FileRouteTypes {
     | '/api/upload-config'
     | '/api/uploadthing'
     | '/api/workspace'
+    | '/dashboard/agent'
+    | '/dashboard/assistant'
     | '/dashboard/me'
     | '/dashboard/my-calendar'
     | '/dashboard/payroll'
@@ -475,6 +497,8 @@ export interface FileRouteTypes {
     | '/api/upload-config'
     | '/api/uploadthing'
     | '/api/workspace'
+    | '/dashboard/agent'
+    | '/dashboard/assistant'
     | '/dashboard/me'
     | '/dashboard/my-calendar'
     | '/dashboard/payroll'
@@ -517,6 +541,8 @@ export interface RootRouteChildren {
   ApiUploadConfigRoute: typeof ApiUploadConfigRoute
   ApiUploadthingRoute: typeof ApiUploadthingRoute
   ApiWorkspaceRoute: typeof ApiWorkspaceRoute
+  DashboardAgentRoute: typeof DashboardAgentRoute
+  DashboardAssistantRoute: typeof DashboardAssistantRoute
   DashboardMeRoute: typeof DashboardMeRoute
   DashboardMyCalendarRoute: typeof DashboardMyCalendarRoute
   DashboardPayrollRoute: typeof DashboardPayrollRoute
@@ -642,6 +668,20 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard/'
       preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/agent': {
+      id: '/dashboard/agent'
+      path: '/dashboard/agent'
+      fullPath: '/dashboard/agent'
+      preLoaderRoute: typeof DashboardAgentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/assistant': {
+      id: '/dashboard/assistant'
+      path: '/dashboard/assistant'
+      fullPath: '/dashboard/assistant'
+      preLoaderRoute: typeof DashboardAssistantRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard/me': {
@@ -882,6 +922,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiUploadConfigRoute: ApiUploadConfigRoute,
   ApiUploadthingRoute: ApiUploadthingRoute,
   ApiWorkspaceRoute: ApiWorkspaceRoute,
+  DashboardAgentRoute: DashboardAgentRoute,
+  DashboardAssistantRoute: DashboardAssistantRoute,
   DashboardMeRoute: DashboardMeRoute,
   DashboardMyCalendarRoute: DashboardMyCalendarRoute,
   DashboardPayrollRoute: DashboardPayrollRoute,
