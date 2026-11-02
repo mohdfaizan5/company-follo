@@ -52,7 +52,7 @@ const navigation = [
   },
   {
     to: '/dashboard/payroll',
-    label: 'Payroll',
+    label: 'Finance',
     icon: Building2,
     resource: 'payroll',
   },
@@ -91,10 +91,10 @@ function AppSidebar() {
                     pathname === '/dashboard/me' ||
                     pathname.startsWith('/dashboard/handbook')
                   }
-                  tooltip="My space"
+                  tooltip="My profile"
                 >
                   <UserRound />
-                  <span>My space</span>
+                  <span>My profile</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               {workspace && !workspace.permissions.calendar.read && (

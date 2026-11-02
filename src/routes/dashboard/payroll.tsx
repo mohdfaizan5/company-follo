@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useId, useMemo, useState } from 'react'
 import {
@@ -68,6 +68,7 @@ import {
   TableRow,
 } from '#/components/ui/table'
 import { Textarea } from '#/components/ui/textarea'
+import { Tabs, TabsList, TabsPanel, TabsTab } from '#/components/ui/tabs'
 import {
   Select,
   SelectGroup,
@@ -159,9 +160,9 @@ function periodLabel(payment: Payment) {
   )
 }
 
-async function getPayments(page = 1) {
+async function getPayments(page = 1, person?: string) {
   const response = await fetch(
-    `/api/payments?page=${page}&pageSize=${PAGE_SIZE}`,
+    `/api/payments?page=${page}&pageSize=${PAGE_SIZE}${person ? `&person=${encodeURIComponent(person)}` : ''}`,
   )
   const payload = (await response.json()) as {
     payments?: Payment[]
@@ -179,13 +180,26 @@ async function getPayments(page = 1) {
   }
 }
 
-const paymentsQueryOptions = (page = 1) => ({
-  queryKey: ['payments', page] as const,
-  queryFn: () => getPayments(page),
+const paymentsQueryOptions = (page = 1, person?: string) => ({
+  queryKey: ['payments', page, person ?? 'all'] as const,
+  queryFn: () => getPayments(page, person),
   staleTime: 60_000,
 })
 
 export const Route = createFileRoute('/dashboard/payroll')({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { view?: 'payments' | 'expenses'; person?: string } => ({
+    view:
+      search.view === 'expenses' || search.view === 'payments'
+        ? search.view
+        : undefined,
+    person:
+      typeof search.person === 'string' &&
+      /^[0-9a-f-]{36}$/i.test(search.person)
+        ? search.person
+        : undefined,
+  }),
   loader: async ({ context }) => {
     if (typeof window === 'undefined') return
     const workspace = await context.queryClient.ensureQueryData(
@@ -202,6 +216,9 @@ export const Route = createFileRoute('/dashboard/payroll')({
 })
 
 function Payroll() {
+  const { view: storedView, person } = Route.useSearch()
+  const view = storedView ?? 'payments'
+  const navigate = useNavigate({ from: Route.fullPath })
   const [page, setPage] = useState(1)
   const workspace = useWorkspace(true)
   const people = useQuery({
@@ -212,13 +229,13 @@ function Payroll() {
     ...formerPeopleQueryOptions,
     enabled: Boolean(workspace.data?.permissions.people.read),
   })
-  const payments = useQuery(paymentsQueryOptions(page))
+  const payments = useQuery(paymentsQueryOptions(page, person))
   return (
     <DashboardPage
       skeleton="table"
       wide
-      title="Payments"
-      description="Everything paid out, by type and region. Recording a payment does not move money."
+      title="Finance"
+      description="Payments are money paid to people. Expenses are company costs, with an optional link to a person."
       actions={
         workspace.data?.permissions.payroll.write ? (
           <AddPayment
@@ -230,45 +247,71 @@ function Payroll() {
         ) : undefined
       }
     >
-      {payments.isPending ? <TableSkeleton /> : null}
-      {payments.isError ? (
-        <p className="py-5 text-sm text-destructive">
-          {payments.error.message}
-        </p>
-      ) : null}
-      {payments.data && !payments.data.total ? (
-        <div className="rounded-xl border">
-          <EmptyState
-            icon={CircleDollarSign}
-            title="No payments recorded yet"
-            description={
-              people.data?.length
-                ? 'Use “Add payment” to create the first record.'
-                : 'Add a person to your team before recording a payment.'
-            }
-          >
-            {!people.data?.length ? (
-              <Button
-                variant="outline"
-                render={<Link to="/dashboard/people" />}
+      <Tabs
+        value={view}
+        onValueChange={(next) => {
+          setPage(1)
+          void navigate({
+            search: {
+              view: next === 'expenses' ? 'expenses' : 'payments',
+              person,
+            },
+          })
+        }}
+      >
+        <TabsList>
+          <TabsTab value="payments">Payments</TabsTab>
+          <TabsTab value="expenses">Expenses</TabsTab>
+        </TabsList>
+        <TabsPanel value="payments" className="mt-4">
+          {payments.isPending ? <TableSkeleton /> : null}
+          {payments.isError ? (
+            <p className="py-5 text-sm text-destructive">
+              {payments.error.message}
+            </p>
+          ) : null}
+          {payments.data && !payments.data.total ? (
+            <div className="rounded-xl border">
+              <EmptyState
+                icon={CircleDollarSign}
+                title="No payments recorded yet"
+                description={
+                  people.data?.length
+                    ? 'Use “Add payment” to create the first record.'
+                    : 'Add a person to your team before recording a payment.'
+                }
               >
-                Add a person first
-                <ArrowRight data-icon="inline-end" />
-              </Button>
-            ) : null}
-          </EmptyState>
-        </div>
-      ) : null}
-      {payments.data?.total ? (
-        <PaymentsTable
-          payments={payments.data.payments}
-          page={payments.data.page}
-          pageSize={payments.data.pageSize}
-          total={payments.data.total}
-          onPageChange={setPage}
-          canDelete={Boolean(workspace.data?.permissions.payroll.write)}
-        />
-      ) : null}
+                {!people.data?.length ? (
+                  <Button
+                    variant="outline"
+                    render={<Link to="/dashboard/people" />}
+                  >
+                    Add a person first
+                    <ArrowRight data-icon="inline-end" />
+                  </Button>
+                ) : null}
+              </EmptyState>
+            </div>
+          ) : null}
+          {payments.data?.total ? (
+            <PaymentsTable
+              payments={payments.data.payments}
+              page={payments.data.page}
+              pageSize={payments.data.pageSize}
+              total={payments.data.total}
+              onPageChange={setPage}
+              canDelete={Boolean(workspace.data?.permissions.payroll.write)}
+            />
+          ) : null}
+        </TabsPanel>
+        <TabsPanel value="expenses" className="mt-4">
+          <ExpensesPanel
+            people={people.data ?? []}
+            personId={person}
+            canWrite={Boolean(workspace.data?.permissions.expenses.write)}
+          />
+        </TabsPanel>
+      </Tabs>
     </DashboardPage>
   )
 }
@@ -862,7 +905,6 @@ function AddPayment({
             <label className="flex flex-col gap-1.5 text-sm font-medium">
               Person
               <Select
-                items={[...people, ...former]}
                 value={selectedPerson}
                 itemToStringValue={(person) => person.employment_id}
                 onValueChange={(person) => {
@@ -1082,5 +1124,315 @@ function AddPayment({
         </form>
       </DialogPopup>
     </Dialog>
+  )
+}
+
+type Expense = {
+  id: string
+  label: string
+  amount: string
+  currency: 'INR' | 'USD'
+  incurred_on: string
+  notes: string | null
+  person_id: string | null
+  first_name: string | null
+  last_name: string | null
+  nickname: string | null
+}
+
+function ExpensesPanel({
+  people,
+  personId,
+  canWrite,
+}: {
+  people: Person[]
+  personId?: string
+  canWrite: boolean
+}) {
+  const queryClient = useQueryClient()
+  const [open, setOpen] = useState(false)
+  const [label, setLabel] = useState('')
+  const [amount, setAmount] = useState('')
+  const [currency, setCurrency] = useState<'INR' | 'USD'>('INR')
+  const [incurredOn, setIncurredOn] = useState(
+    new Date().toISOString().slice(0, 10),
+  )
+  const [employmentId, setEmploymentId] = useState('')
+  const [notes, setNotes] = useState('')
+  const expenses = useQuery({
+    queryKey: ['expenses', personId ?? 'all'],
+    queryFn: async () => {
+      const response = await fetch(
+        `/api/expenses${personId ? `?person=${personId}` : ''}`,
+      )
+      const payload = (await response.json()) as {
+        expenses?: Expense[]
+        error?: string
+      }
+      if (!response.ok)
+        throw new Error(payload.error ?? 'Could not load expenses.')
+      return payload.expenses ?? []
+    },
+  })
+  const create = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          label,
+          amount: amount.replaceAll(',', ''),
+          currency,
+          incurredOn,
+          employmentId: employmentId || null,
+          notes,
+        }),
+      })
+      const payload = (await response.json()) as { error?: string }
+      if (!response.ok)
+        throw new Error(payload.error ?? 'Could not save expense.')
+    },
+    onSuccess: async () => {
+      setOpen(false)
+      setLabel('')
+      setAmount('')
+      setNotes('')
+      setEmploymentId('')
+      await queryClient.invalidateQueries({ queryKey: ['expenses'] })
+      appToast.success('Expense saved')
+    },
+    onError: (error) =>
+      appToast.error(
+        'Expense not saved',
+        error,
+        'Could not save this expense.',
+      ),
+  })
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/expenses?id=${id}`, {
+        method: 'DELETE',
+      })
+      const payload = (await response.json()) as { error?: string }
+      if (!response.ok)
+        throw new Error(payload.error ?? 'Could not delete expense.')
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['expenses'] })
+      appToast.success('Expense deleted')
+    },
+  })
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          Record food, software, day passes, or other company costs. A person is
+          optional.
+        </p>
+        {canWrite && (
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger render={<Button />}>
+              <Plus data-icon="inline-start" />
+              Add expense
+            </DialogTrigger>
+            <DialogPopup>
+              <DialogHeader>
+                <DialogTitle>Add company expense</DialogTitle>
+                <DialogDescription>
+                  Keep this separate from pay. Link a person only when the cost
+                  belongs to them.
+                </DialogDescription>
+              </DialogHeader>
+              <form
+                className="contents"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  create.mutate()
+                }}
+              >
+                <DialogPanel className="flex flex-col gap-4">
+                  <label className="flex flex-col gap-1.5 text-sm font-medium">
+                    What was it?
+                    <Input
+                      required
+                      value={label}
+                      onChange={(event) => setLabel(event.target.value)}
+                      placeholder="e.g. Figma subscription, food, day pass"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5 text-sm font-medium">
+                    Linked person{' '}
+                    <Select
+                      value={employmentId}
+                      onValueChange={(value) => setEmploymentId(value ?? '')}
+                    >
+                      <SelectTrigger aria-label="Linked person">
+                        <SelectValue placeholder="No one — company expense" />
+                      </SelectTrigger>
+                      <SelectPopup>
+                        <SelectItem value="">
+                          No one — company expense
+                        </SelectItem>
+                        {people.map((person) => (
+                          <SelectItem
+                            key={person.employment_id}
+                            value={person.employment_id}
+                          >
+                            <PersonSelectValue person={person} />
+                          </SelectItem>
+                        ))}
+                      </SelectPopup>
+                    </Select>
+                  </label>
+                  <label className="flex flex-col gap-1.5 text-sm font-medium">
+                    Amount
+                    <Group>
+                      <Select
+                        value={currency}
+                        onValueChange={(value) =>
+                          setCurrency(value === 'USD' ? 'USD' : 'INR')
+                        }
+                      >
+                        <SelectTrigger
+                          className="w-24 min-w-24"
+                          aria-label="Currency"
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectPopup>
+                          <SelectItem value="INR">INR</SelectItem>
+                          <SelectItem value="USD">USD</SelectItem>
+                        </SelectPopup>
+                      </Select>
+                      <GroupSeparator />
+                      <Input
+                        required
+                        inputMode="decimal"
+                        value={amount}
+                        onChange={(event) =>
+                          setAmount(formatAmountInput(event.target.value))
+                        }
+                        placeholder="0.00"
+                      />
+                    </Group>
+                  </label>
+                  <label className="flex flex-col gap-1.5 text-sm font-medium">
+                    Date
+                    <Input
+                      required
+                      type="date"
+                      value={incurredOn}
+                      onChange={(event) => setIncurredOn(event.target.value)}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5 text-sm font-medium">
+                    Note{' '}
+                    <Textarea
+                      value={notes}
+                      onChange={(event) => setNotes(event.target.value)}
+                    />
+                  </label>
+                  {create.isError && (
+                    <p className="text-sm text-destructive">
+                      {create.error.message}
+                    </p>
+                  )}
+                </DialogPanel>
+                <DialogFooter>
+                  <DialogClose render={<Button variant="ghost" />}>
+                    Cancel
+                  </DialogClose>
+                  <Button type="submit" loading={create.isPending}>
+                    Save expense
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogPopup>
+          </Dialog>
+        )}
+      </div>
+      {expenses.isPending ? (
+        <TableSkeleton rows={3} />
+      ) : expenses.isError ? (
+        <p className="text-sm text-destructive">{expenses.error.message}</p>
+      ) : (
+        <CardFrame>
+          <Table variant="card">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Expense</TableHead>
+                <TableHead>Person</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="w-10" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {expenses.data?.length ? (
+                expenses.data.map((expense) => (
+                  <TableRow key={expense.id}>
+                    <TableCell>
+                      <span className="font-medium">{expense.label}</span>
+                      {expense.notes && (
+                        <span className="block text-xs text-muted-foreground">
+                          {expense.notes}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {expense.person_id ? (
+                        <Link
+                          to="/dashboard/people/$personId"
+                          params={{ personId: expense.person_id }}
+                          className="hover:text-primary"
+                        >
+                          {expense.nickname ||
+                            `${expense.first_name ?? ''} ${expense.last_name ?? ''}`.trim()}
+                        </Link>
+                      ) : (
+                        <span className="text-muted-foreground">Company</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="tabular-nums text-muted-foreground">
+                      {shortDate(expense.incurred_on)}
+                    </TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">
+                      {paymentFormatters[expense.currency].format(
+                        Number(expense.amount),
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {canWrite && (
+                        <Button
+                          size="icon-sm"
+                          variant="ghost"
+                          aria-label="Delete expense"
+                          disabled={remove.isPending}
+                          onClick={() => {
+                            if (window.confirm('Delete this expense?'))
+                              remove.mutate(expense.id)
+                          }}
+                        >
+                          <Trash2 />
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={5}
+                    className="h-24 text-center text-muted-foreground"
+                  >
+                    No expenses recorded.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardFrame>
+      )}
+    </div>
   )
 }

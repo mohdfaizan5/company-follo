@@ -1,15 +1,12 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import {
   CalendarDays,
   CalendarPlus,
-  ChevronDown,
   FileText,
   Inbox,
   Pencil,
-  Plus,
-  ScrollText,
   Trash2,
 } from 'lucide-react'
 import { EmptyState } from '#/components/empty-state'
@@ -48,9 +45,8 @@ import {
   DialogPopup,
   DialogTitle,
 } from '#/components/ui/dialog'
-import { Group, GroupSeparator } from '#/components/ui/group'
+import { Group } from '#/components/ui/group'
 import { Input } from '#/components/ui/input'
-import { Menu, MenuItem, MenuPopup, MenuTrigger } from '#/components/ui/menu'
 import { NativeSelect, NativeSelectOption } from '#/components/ui/native-select'
 import {
   Table,
@@ -135,7 +131,7 @@ export const Route = createFileRoute('/dashboard/time-off')({
     if (typeof window === 'undefined') return
     void context.queryClient.prefetchQuery(timeOffQueryOptions)
   },
-  component: TimeOffPage,
+  component: CalendarPage,
 })
 
 type DialogState =
@@ -144,57 +140,71 @@ type DialogState =
   | { type: 'policy'; policy?: Policy }
   | null
 
-function TimeOffPage() {
+function CalendarPage() {
+  return <TimeOffPage mode="calendar" />
+}
+
+export function TimeOffPage({
+  mode = 'calendar',
+}: {
+  mode?: 'calendar' | 'leaves'
+}) {
+  const navigate = useNavigate()
   const query = useQuery(timeOffQueryOptions)
   const workspace = useWorkspace(true)
   const canWrite = workspace.data?.permissions.calendar.write ?? false
   const [dialog, setDialog] = useState<DialogState>(null)
+  const [personFilter, setPersonFilter] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState<'all' | LeaveCategory>(
+    'all',
+  )
   const data = query.data
-  const canAddLeave = Boolean(data?.people.length && data.policies.length)
+  const filteredRequests = data?.requests.filter(
+    (leave) =>
+      (!personFilter || leave.employment_id === personFilter) &&
+      (categoryFilter === 'all' ||
+        categoryOf(leave.policy_category) === categoryFilter),
+  )
 
   return (
     <DashboardPage
-      title="Calendar"
+      title={mode === 'calendar' ? 'Calendar' : 'Leaves'}
       // description="Holidays, leave and who is working from home."
       skeleton="calendar"
       wide
       actions={
-        data && canWrite ? (
+        data && canWrite && mode === 'calendar' ? (
           <Group aria-label="Calendar actions">
             <Button
-              disabled={!canAddLeave}
+              variant="outline"
+              render={<Link to="/dashboard/time-off/leaves" />}
+            >
+              Manage leaves
+            </Button>
+            <Button onClick={() => setDialog({ type: 'holiday' })}>
+              <CalendarPlus data-icon="inline-start" />
+              Holiday
+            </Button>
+          </Group>
+        ) : data && canWrite && mode === 'leaves' ? (
+          <Group aria-label="Leave management actions">
+            <Button
+              variant="outline"
+              render={<Link to="/dashboard/time-off" />}
+            >
+              Calendar
+            </Button>
+            <Button
               onClick={() => setDialog({ type: 'leave', mode: 'recorded' })}
             >
-              <Plus data-icon="inline-start" />
-              Record taken leave
+              Record leave
             </Button>
-            <GroupSeparator className="bg-primary/72" />
-            <Menu>
-              <MenuTrigger
-                render={
-                  <Button size="icon" aria-label="More calendar actions" />
-                }
-              >
-                <ChevronDown aria-hidden="true" className="size-4" />
-              </MenuTrigger>
-              <MenuPopup align="end">
-                <MenuItem
-                  disabled={!canAddLeave}
-                  onClick={() => setDialog({ type: 'leave', mode: 'request' })}
-                >
-                  <Inbox aria-hidden="true" />
-                  Leave request
-                </MenuItem>
-                <MenuItem onClick={() => setDialog({ type: 'holiday' })}>
-                  <CalendarPlus aria-hidden="true" />
-                  Holiday
-                </MenuItem>
-                <MenuItem onClick={() => setDialog({ type: 'policy' })}>
-                  <ScrollText aria-hidden="true" />
-                  Leave type
-                </MenuItem>
-              </MenuPopup>
-            </Menu>
+            <Button
+              variant="outline"
+              onClick={() => setDialog({ type: 'policy' })}
+            >
+              New leave type
+            </Button>
           </Group>
         ) : undefined
       }
@@ -203,22 +213,96 @@ function TimeOffPage() {
       {query.isError && (
         <p className="text-sm text-destructive">{query.error.message}</p>
       )}
-      {data && (
+      {data && mode === 'calendar' && (
         <>
-          <TodayStrip data={data} />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              Click a leave or holiday to review it. Use a person filter to
+              focus the calendar.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <NativeSelect
+                className="w-48"
+                value={personFilter}
+                onChange={(event) => setPersonFilter(event.target.value)}
+                aria-label="Filter calendar by person"
+              >
+                <NativeSelectOption value="">Everyone</NativeSelectOption>
+                {data.people.map((person) => (
+                  <NativeSelectOption
+                    key={person.employment_id}
+                    value={person.employment_id}
+                  >
+                    {person.first_name} {person.last_name ?? ''}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+              <NativeSelect
+                className="w-36"
+                value={categoryFilter}
+                onChange={(event) =>
+                  setCategoryFilter(event.target.value as 'all' | LeaveCategory)
+                }
+                aria-label="Filter calendar by event type"
+              >
+                <NativeSelectOption value="all">All types</NativeSelectOption>
+                <NativeSelectOption value="paid">Paid leave</NativeSelectOption>
+                <NativeSelectOption value="unpaid">
+                  Unpaid leave
+                </NativeSelectOption>
+                <NativeSelectOption value="wfh">WFH</NativeSelectOption>
+              </NativeSelect>
+            </div>
+          </div>
+          <TodayStrip
+            data={{
+              ...data,
+              requests: filteredRequests ?? data.requests,
+            }}
+          />
+          <div className="min-w-0">
+            <TimeOffCalendar
+              holidays={data.holidays}
+              requests={filteredRequests ?? data.requests}
+              today={data.today}
+              workingDays={data.workingDays}
+              onHolidayClick={
+                canWrite
+                  ? (holiday) => setDialog({ type: 'holiday', holiday })
+                  : undefined
+              }
+              onLeaveClick={() =>
+                void navigate({ to: '/dashboard/time-off/leaves' })
+              }
+            />
+          </div>
+          {dialog?.type === 'leave' && (
+            <LeaveDialog
+              data={data}
+              mode={dialog.mode}
+              onClose={() => setDialog(null)}
+            />
+          )}
+          {dialog?.type === 'holiday' && (
+            <HolidayDialog
+              holiday={dialog.holiday}
+              onClose={() => setDialog(null)}
+            />
+          )}
+          {dialog?.type === 'policy' && (
+            <PolicyDialog
+              policy={dialog.policy}
+              onClose={() => setDialog(null)}
+            />
+          )}
+        </>
+      )}
+      {data && mode === 'leaves' && (
+        <>
           <div className="grid gap-5 xl:grid-cols-[1fr_300px]">
             <div className="min-w-0">
-              <TimeOffCalendar
-                holidays={data.holidays}
-                requests={data.requests}
-                today={data.today}
-                workingDays={data.workingDays}
-                onHolidayClick={
-                  canWrite
-                    ? (holiday) => setDialog({ type: 'holiday', holiday })
-                    : undefined
-                }
-              />
+              <LeaveTable data={data} canWrite={canWrite} />
+              <BalanceTable data={data} />
             </div>
             <div className="flex flex-col gap-5">
               <PolicyCard
@@ -233,8 +317,6 @@ function TimeOffPage() {
               />
             </div>
           </div>
-          <LeaveTable data={data} canWrite={canWrite} />
-          <BalanceTable data={data} />
           {dialog?.type === 'leave' && (
             <LeaveDialog
               data={data}
@@ -564,10 +646,13 @@ function HolidayCard({
                       aria-label={`Delete ${holiday.name}`}
                       disabled={remove.isPending}
                       onClick={() =>
-                        remove.mutate({
-                          action: 'removeHoliday',
-                          holidayId: holiday.id,
-                        }, { onSuccess: () => appToast.info('Holiday removed') })
+                        remove.mutate(
+                          {
+                            action: 'removeHoliday',
+                            holidayId: holiday.id,
+                          },
+                          { onSuccess: () => appToast.info('Holiday removed') },
+                        )
                       }
                     >
                       <Trash2 />
@@ -894,7 +979,20 @@ function LeaveDialog({
                 halfDay,
                 reason,
               },
-              { onSuccess: () => { appToast.success(recorded ? 'Leave recorded' : 'Leave request added'); onClose() }, onError: (error) => appToast.error('Leave not saved', error, 'Could not save leave.') },
+              {
+                onSuccess: () => {
+                  appToast.success(
+                    recorded ? 'Leave recorded' : 'Leave request added',
+                  )
+                  onClose()
+                },
+                onError: (error) =>
+                  appToast.error(
+                    'Leave not saved',
+                    error,
+                    'Could not save leave.',
+                  ),
+              },
             )
           }}
         >
@@ -1029,7 +1127,20 @@ function HolidayDialog({
                     kind,
                   }
                 : { action: 'holiday', name, date, kind },
-              { onSuccess: () => { appToast.success(holiday ? 'Holiday updated' : 'Holiday added'); onClose() }, onError: (error) => appToast.error('Holiday not saved', error, 'Could not save holiday.') },
+              {
+                onSuccess: () => {
+                  appToast.success(
+                    holiday ? 'Holiday updated' : 'Holiday added',
+                  )
+                  onClose()
+                },
+                onError: (error) =>
+                  appToast.error(
+                    'Holiday not saved',
+                    error,
+                    'Could not save holiday.',
+                  ),
+              },
             )
           }}
         >
@@ -1086,7 +1197,18 @@ function HolidayDialog({
                 onClick={() =>
                   remove.mutate(
                     { action: 'removeHoliday', holidayId: holiday.id },
-                    { onSuccess: () => { appToast.info('Holiday removed'); onClose() }, onError: (error) => appToast.error('Holiday not removed', error, 'Could not remove holiday.') },
+                    {
+                      onSuccess: () => {
+                        appToast.info('Holiday removed')
+                        onClose()
+                      },
+                      onError: (error) =>
+                        appToast.error(
+                          'Holiday not removed',
+                          error,
+                          'Could not remove holiday.',
+                        ),
+                    },
                   )
                 }
               >
@@ -1164,7 +1286,20 @@ function PolicyDialog({
               policy
                 ? { action: 'updatePolicy', policyId: policy.id, ...body }
                 : { action: 'policy', ...body },
-              { onSuccess: () => { appToast.success(policy ? 'Leave policy updated' : 'Leave policy added'); onClose() }, onError: (error) => appToast.error('Leave policy not saved', error, 'Could not save leave policy.') },
+              {
+                onSuccess: () => {
+                  appToast.success(
+                    policy ? 'Leave policy updated' : 'Leave policy added',
+                  )
+                  onClose()
+                },
+                onError: (error) =>
+                  appToast.error(
+                    'Leave policy not saved',
+                    error,
+                    'Could not save leave policy.',
+                  ),
+              },
             )
           }}
         >
@@ -1264,7 +1399,18 @@ function PolicyDialog({
                 onClick={() =>
                   remove.mutate(
                     { action: 'removePolicy', policyId: policy.id },
-                    { onSuccess: () => { appToast.warning('Leave policy removed'); onClose() }, onError: (error) => appToast.error('Leave policy not removed', error, 'Could not remove leave policy.') },
+                    {
+                      onSuccess: () => {
+                        appToast.warning('Leave policy removed')
+                        onClose()
+                      },
+                      onError: (error) =>
+                        appToast.error(
+                          'Leave policy not removed',
+                          error,
+                          'Could not remove leave policy.',
+                        ),
+                    },
                   )
                 }
               >

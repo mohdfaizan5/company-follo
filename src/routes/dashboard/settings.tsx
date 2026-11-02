@@ -42,8 +42,12 @@ const resources = [
     detail: 'Holidays, leave and balances',
   },
   { key: 'docs', label: 'Docs', detail: 'Company rules and SOPs' },
-  { key: 'payroll', label: 'Payroll', detail: 'Payments and compensation' },
-  { key: 'expenses', label: 'Expenses', detail: 'Expenses on people profiles' },
+  { key: 'payroll', label: 'Finance', detail: 'Payments and compensation' },
+  {
+    key: 'expenses',
+    label: 'Expenses',
+    detail: 'Company and people-linked expenses',
+  },
   {
     key: 'agent',
     label: 'Agent',

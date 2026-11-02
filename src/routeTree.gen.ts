@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ApiDocsRouteImport } from './routes/api/docs'
+import { Route as ApiExpensesRouteImport } from './routes/api/expenses'
 import { Route as ApiInvitationsRouteImport } from './routes/api/invitations'
 import { Route as ApiMeRouteImport } from './routes/api/me'
 import { Route as ApiOverviewRouteImport } from './routes/api/overview'
@@ -43,11 +44,18 @@ import { Route as DashboardHandbookDocumentIdRouteImport } from './routes/dashbo
 import { Route as DashboardPeopleIndexRouteImport } from './routes/dashboard/people/index'
 import { Route as DashboardPeoplePersonIdRouteImport } from './routes/dashboard/people.$personId'
 import { Route as DashboardPeopleNewRouteImport } from './routes/dashboard/people/new'
+import { Route as DashboardTimeOffLeavesRouteImport } from './routes/dashboard/time-off.leaves'
 import { Route as HandbookCompanySlugDocumentSlugRouteImport } from './routes/handbook/$companySlug/$documentSlug'
 import { Route as ApiHandbookCompanySlugDocumentSlugRouteImport } from './routes/api/handbook/$companySlug/$documentSlug'
+import { Route as ApiPeoplePersonIdActivityRouteImport } from './routes/api/people/$personId/activity'
 import { Route as ApiPeoplePersonIdEmploymentRouteImport } from './routes/api/people/$personId/employment'
 import { Route as ApiPeoplePersonIdPhotoRouteImport } from './routes/api/people/$personId/photo'
 import { Route as ApiPeoplePersonIdRecordsRouteImport } from './routes/api/people/$personId/records'
+import { Route as DashboardPeoplePersonIdIndexRouteImport } from './routes/dashboard/people.$personId.index'
+import { Route as DashboardPeoplePersonIdActivityRouteImport } from './routes/dashboard/people.$personId.activity'
+import { Route as DashboardPeoplePersonIdCalendarRouteImport } from './routes/dashboard/people.$personId.calendar'
+import { Route as DashboardPeoplePersonIdDocumentsRouteImport } from './routes/dashboard/people.$personId.documents'
+import { Route as DashboardPeoplePersonIdRecordsRouteImport } from './routes/dashboard/people.$personId.records'
 import { Route as DashboardPeoplePersonIdEditRouteImport } from './routes/dashboard/people.$personId_.edit'
 import { Route as ApiPeoplePersonIdFilesDocumentIdRouteImport } from './routes/api/people/$personId/files/$documentId'
 
@@ -69,6 +77,11 @@ const SignupRoute = SignupRouteImport.update({
 const ApiDocsRoute = ApiDocsRouteImport.update({
   id: '/api/docs',
   path: '/api/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiExpensesRoute = ApiExpensesRouteImport.update({
+  id: '/api/expenses',
+  path: '/api/expenses',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiInvitationsRoute = ApiInvitationsRouteImport.update({
@@ -222,6 +235,11 @@ const DashboardPeopleNewRoute = DashboardPeopleNewRouteImport.update({
   path: '/dashboard/people/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardTimeOffLeavesRoute = DashboardTimeOffLeavesRouteImport.update({
+  id: '/leaves',
+  path: '/leaves',
+  getParentRoute: () => DashboardTimeOffRoute,
+} as any)
 const HandbookCompanySlugDocumentSlugRoute =
   HandbookCompanySlugDocumentSlugRouteImport.update({
     id: '/handbook/$companySlug/$documentSlug',
@@ -233,6 +251,12 @@ const ApiHandbookCompanySlugDocumentSlugRoute =
     id: '/api/handbook/$companySlug/$documentSlug',
     path: '/api/handbook/$companySlug/$documentSlug',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPeoplePersonIdActivityRoute =
+  ApiPeoplePersonIdActivityRouteImport.update({
+    id: '/activity',
+    path: '/activity',
+    getParentRoute: () => ApiPeoplePersonIdRoute,
   } as any)
 const ApiPeoplePersonIdEmploymentRoute =
   ApiPeoplePersonIdEmploymentRouteImport.update({
@@ -250,6 +274,36 @@ const ApiPeoplePersonIdRecordsRoute =
     id: '/records',
     path: '/records',
     getParentRoute: () => ApiPeoplePersonIdRoute,
+  } as any)
+const DashboardPeoplePersonIdIndexRoute =
+  DashboardPeoplePersonIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => DashboardPeoplePersonIdRoute,
+  } as any)
+const DashboardPeoplePersonIdActivityRoute =
+  DashboardPeoplePersonIdActivityRouteImport.update({
+    id: '/activity',
+    path: '/activity',
+    getParentRoute: () => DashboardPeoplePersonIdRoute,
+  } as any)
+const DashboardPeoplePersonIdCalendarRoute =
+  DashboardPeoplePersonIdCalendarRouteImport.update({
+    id: '/calendar',
+    path: '/calendar',
+    getParentRoute: () => DashboardPeoplePersonIdRoute,
+  } as any)
+const DashboardPeoplePersonIdDocumentsRoute =
+  DashboardPeoplePersonIdDocumentsRouteImport.update({
+    id: '/documents',
+    path: '/documents',
+    getParentRoute: () => DashboardPeoplePersonIdRoute,
+  } as any)
+const DashboardPeoplePersonIdRecordsRoute =
+  DashboardPeoplePersonIdRecordsRouteImport.update({
+    id: '/records',
+    path: '/records',
+    getParentRoute: () => DashboardPeoplePersonIdRoute,
   } as any)
 const DashboardPeoplePersonIdEditRoute =
   DashboardPeoplePersonIdEditRouteImport.update({
@@ -269,6 +323,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/api/docs': typeof ApiDocsRouteWithChildren
+  '/api/expenses': typeof ApiExpensesRoute
   '/api/invitations': typeof ApiInvitationsRouteWithChildren
   '/api/me': typeof ApiMeRoute
   '/api/overview': typeof ApiOverviewRoute
@@ -285,7 +340,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/my-calendar': typeof DashboardMyCalendarRoute
   '/dashboard/payroll': typeof DashboardPayrollRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
-  '/dashboard/time-off': typeof DashboardTimeOffRoute
+  '/dashboard/time-off': typeof DashboardTimeOffRouteWithChildren
   '/invite/$token': typeof InviteTokenRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -295,16 +350,23 @@ export interface FileRoutesByFullPath {
   '/api/people/$personId': typeof ApiPeoplePersonIdRouteWithChildren
   '/dashboard/docs/$documentId': typeof DashboardDocsDocumentIdRoute
   '/dashboard/handbook/$documentId': typeof DashboardHandbookDocumentIdRoute
-  '/dashboard/people/$personId': typeof DashboardPeoplePersonIdRoute
+  '/dashboard/people/$personId': typeof DashboardPeoplePersonIdRouteWithChildren
   '/dashboard/people/new': typeof DashboardPeopleNewRoute
+  '/dashboard/time-off/leaves': typeof DashboardTimeOffLeavesRoute
   '/handbook/$companySlug/$documentSlug': typeof HandbookCompanySlugDocumentSlugRoute
   '/dashboard/docs/': typeof DashboardDocsIndexRoute
   '/dashboard/people/': typeof DashboardPeopleIndexRoute
   '/api/handbook/$companySlug/$documentSlug': typeof ApiHandbookCompanySlugDocumentSlugRoute
+  '/api/people/$personId/activity': typeof ApiPeoplePersonIdActivityRoute
   '/api/people/$personId/employment': typeof ApiPeoplePersonIdEmploymentRoute
   '/api/people/$personId/photo': typeof ApiPeoplePersonIdPhotoRoute
   '/api/people/$personId/records': typeof ApiPeoplePersonIdRecordsRoute
+  '/dashboard/people/$personId/activity': typeof DashboardPeoplePersonIdActivityRoute
+  '/dashboard/people/$personId/calendar': typeof DashboardPeoplePersonIdCalendarRoute
+  '/dashboard/people/$personId/documents': typeof DashboardPeoplePersonIdDocumentsRoute
+  '/dashboard/people/$personId/records': typeof DashboardPeoplePersonIdRecordsRoute
   '/dashboard/people/$personId/edit': typeof DashboardPeoplePersonIdEditRoute
+  '/dashboard/people/$personId/': typeof DashboardPeoplePersonIdIndexRoute
   '/api/people/$personId/files/$documentId': typeof ApiPeoplePersonIdFilesDocumentIdRoute
 }
 export interface FileRoutesByTo {
@@ -312,6 +374,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/api/docs': typeof ApiDocsRouteWithChildren
+  '/api/expenses': typeof ApiExpensesRoute
   '/api/invitations': typeof ApiInvitationsRouteWithChildren
   '/api/me': typeof ApiMeRoute
   '/api/overview': typeof ApiOverviewRoute
@@ -328,7 +391,7 @@ export interface FileRoutesByTo {
   '/dashboard/my-calendar': typeof DashboardMyCalendarRoute
   '/dashboard/payroll': typeof DashboardPayrollRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
-  '/dashboard/time-off': typeof DashboardTimeOffRoute
+  '/dashboard/time-off': typeof DashboardTimeOffRouteWithChildren
   '/invite/$token': typeof InviteTokenRoute
   '/dashboard': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -338,16 +401,22 @@ export interface FileRoutesByTo {
   '/api/people/$personId': typeof ApiPeoplePersonIdRouteWithChildren
   '/dashboard/docs/$documentId': typeof DashboardDocsDocumentIdRoute
   '/dashboard/handbook/$documentId': typeof DashboardHandbookDocumentIdRoute
-  '/dashboard/people/$personId': typeof DashboardPeoplePersonIdRoute
   '/dashboard/people/new': typeof DashboardPeopleNewRoute
+  '/dashboard/time-off/leaves': typeof DashboardTimeOffLeavesRoute
   '/handbook/$companySlug/$documentSlug': typeof HandbookCompanySlugDocumentSlugRoute
   '/dashboard/docs': typeof DashboardDocsIndexRoute
   '/dashboard/people': typeof DashboardPeopleIndexRoute
   '/api/handbook/$companySlug/$documentSlug': typeof ApiHandbookCompanySlugDocumentSlugRoute
+  '/api/people/$personId/activity': typeof ApiPeoplePersonIdActivityRoute
   '/api/people/$personId/employment': typeof ApiPeoplePersonIdEmploymentRoute
   '/api/people/$personId/photo': typeof ApiPeoplePersonIdPhotoRoute
   '/api/people/$personId/records': typeof ApiPeoplePersonIdRecordsRoute
+  '/dashboard/people/$personId/activity': typeof DashboardPeoplePersonIdActivityRoute
+  '/dashboard/people/$personId/calendar': typeof DashboardPeoplePersonIdCalendarRoute
+  '/dashboard/people/$personId/documents': typeof DashboardPeoplePersonIdDocumentsRoute
+  '/dashboard/people/$personId/records': typeof DashboardPeoplePersonIdRecordsRoute
   '/dashboard/people/$personId/edit': typeof DashboardPeoplePersonIdEditRoute
+  '/dashboard/people/$personId': typeof DashboardPeoplePersonIdIndexRoute
   '/api/people/$personId/files/$documentId': typeof ApiPeoplePersonIdFilesDocumentIdRoute
 }
 export interface FileRoutesById {
@@ -356,6 +425,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/api/docs': typeof ApiDocsRouteWithChildren
+  '/api/expenses': typeof ApiExpensesRoute
   '/api/invitations': typeof ApiInvitationsRouteWithChildren
   '/api/me': typeof ApiMeRoute
   '/api/overview': typeof ApiOverviewRoute
@@ -372,7 +442,7 @@ export interface FileRoutesById {
   '/dashboard/my-calendar': typeof DashboardMyCalendarRoute
   '/dashboard/payroll': typeof DashboardPayrollRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
-  '/dashboard/time-off': typeof DashboardTimeOffRoute
+  '/dashboard/time-off': typeof DashboardTimeOffRouteWithChildren
   '/invite/$token': typeof InviteTokenRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -382,16 +452,23 @@ export interface FileRoutesById {
   '/api/people/$personId': typeof ApiPeoplePersonIdRouteWithChildren
   '/dashboard/docs/$documentId': typeof DashboardDocsDocumentIdRoute
   '/dashboard/handbook/$documentId': typeof DashboardHandbookDocumentIdRoute
-  '/dashboard/people/$personId': typeof DashboardPeoplePersonIdRoute
+  '/dashboard/people/$personId': typeof DashboardPeoplePersonIdRouteWithChildren
   '/dashboard/people/new': typeof DashboardPeopleNewRoute
+  '/dashboard/time-off/leaves': typeof DashboardTimeOffLeavesRoute
   '/handbook/$companySlug/$documentSlug': typeof HandbookCompanySlugDocumentSlugRoute
   '/dashboard/docs/': typeof DashboardDocsIndexRoute
   '/dashboard/people/': typeof DashboardPeopleIndexRoute
   '/api/handbook/$companySlug/$documentSlug': typeof ApiHandbookCompanySlugDocumentSlugRoute
+  '/api/people/$personId/activity': typeof ApiPeoplePersonIdActivityRoute
   '/api/people/$personId/employment': typeof ApiPeoplePersonIdEmploymentRoute
   '/api/people/$personId/photo': typeof ApiPeoplePersonIdPhotoRoute
   '/api/people/$personId/records': typeof ApiPeoplePersonIdRecordsRoute
+  '/dashboard/people/$personId/activity': typeof DashboardPeoplePersonIdActivityRoute
+  '/dashboard/people/$personId/calendar': typeof DashboardPeoplePersonIdCalendarRoute
+  '/dashboard/people/$personId/documents': typeof DashboardPeoplePersonIdDocumentsRoute
+  '/dashboard/people/$personId/records': typeof DashboardPeoplePersonIdRecordsRoute
   '/dashboard/people/$personId_/edit': typeof DashboardPeoplePersonIdEditRoute
+  '/dashboard/people/$personId/': typeof DashboardPeoplePersonIdIndexRoute
   '/api/people/$personId/files/$documentId': typeof ApiPeoplePersonIdFilesDocumentIdRoute
 }
 export interface FileRouteTypes {
@@ -401,6 +478,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/api/docs'
+    | '/api/expenses'
     | '/api/invitations'
     | '/api/me'
     | '/api/overview'
@@ -429,14 +507,21 @@ export interface FileRouteTypes {
     | '/dashboard/handbook/$documentId'
     | '/dashboard/people/$personId'
     | '/dashboard/people/new'
+    | '/dashboard/time-off/leaves'
     | '/handbook/$companySlug/$documentSlug'
     | '/dashboard/docs/'
     | '/dashboard/people/'
     | '/api/handbook/$companySlug/$documentSlug'
+    | '/api/people/$personId/activity'
     | '/api/people/$personId/employment'
     | '/api/people/$personId/photo'
     | '/api/people/$personId/records'
+    | '/dashboard/people/$personId/activity'
+    | '/dashboard/people/$personId/calendar'
+    | '/dashboard/people/$personId/documents'
+    | '/dashboard/people/$personId/records'
     | '/dashboard/people/$personId/edit'
+    | '/dashboard/people/$personId/'
     | '/api/people/$personId/files/$documentId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -444,6 +529,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/api/docs'
+    | '/api/expenses'
     | '/api/invitations'
     | '/api/me'
     | '/api/overview'
@@ -470,16 +556,22 @@ export interface FileRouteTypes {
     | '/api/people/$personId'
     | '/dashboard/docs/$documentId'
     | '/dashboard/handbook/$documentId'
-    | '/dashboard/people/$personId'
     | '/dashboard/people/new'
+    | '/dashboard/time-off/leaves'
     | '/handbook/$companySlug/$documentSlug'
     | '/dashboard/docs'
     | '/dashboard/people'
     | '/api/handbook/$companySlug/$documentSlug'
+    | '/api/people/$personId/activity'
     | '/api/people/$personId/employment'
     | '/api/people/$personId/photo'
     | '/api/people/$personId/records'
+    | '/dashboard/people/$personId/activity'
+    | '/dashboard/people/$personId/calendar'
+    | '/dashboard/people/$personId/documents'
+    | '/dashboard/people/$personId/records'
     | '/dashboard/people/$personId/edit'
+    | '/dashboard/people/$personId'
     | '/api/people/$personId/files/$documentId'
   id:
     | '__root__'
@@ -487,6 +579,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/api/docs'
+    | '/api/expenses'
     | '/api/invitations'
     | '/api/me'
     | '/api/overview'
@@ -515,14 +608,21 @@ export interface FileRouteTypes {
     | '/dashboard/handbook/$documentId'
     | '/dashboard/people/$personId'
     | '/dashboard/people/new'
+    | '/dashboard/time-off/leaves'
     | '/handbook/$companySlug/$documentSlug'
     | '/dashboard/docs/'
     | '/dashboard/people/'
     | '/api/handbook/$companySlug/$documentSlug'
+    | '/api/people/$personId/activity'
     | '/api/people/$personId/employment'
     | '/api/people/$personId/photo'
     | '/api/people/$personId/records'
+    | '/dashboard/people/$personId/activity'
+    | '/dashboard/people/$personId/calendar'
+    | '/dashboard/people/$personId/documents'
+    | '/dashboard/people/$personId/records'
     | '/dashboard/people/$personId_/edit'
+    | '/dashboard/people/$personId/'
     | '/api/people/$personId/files/$documentId'
   fileRoutesById: FileRoutesById
 }
@@ -531,6 +631,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
   ApiDocsRoute: typeof ApiDocsRouteWithChildren
+  ApiExpensesRoute: typeof ApiExpensesRoute
   ApiInvitationsRoute: typeof ApiInvitationsRouteWithChildren
   ApiMeRoute: typeof ApiMeRoute
   ApiOverviewRoute: typeof ApiOverviewRoute
@@ -547,14 +648,14 @@ export interface RootRouteChildren {
   DashboardMyCalendarRoute: typeof DashboardMyCalendarRoute
   DashboardPayrollRoute: typeof DashboardPayrollRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
-  DashboardTimeOffRoute: typeof DashboardTimeOffRoute
+  DashboardTimeOffRoute: typeof DashboardTimeOffRouteWithChildren
   InviteTokenRoute: typeof InviteTokenRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiMyDocsDocumentIdRoute: typeof ApiMyDocsDocumentIdRoute
   DashboardDocsDocumentIdRoute: typeof DashboardDocsDocumentIdRoute
   DashboardHandbookDocumentIdRoute: typeof DashboardHandbookDocumentIdRoute
-  DashboardPeoplePersonIdRoute: typeof DashboardPeoplePersonIdRoute
+  DashboardPeoplePersonIdRoute: typeof DashboardPeoplePersonIdRouteWithChildren
   DashboardPeopleNewRoute: typeof DashboardPeopleNewRoute
   HandbookCompanySlugDocumentSlugRoute: typeof HandbookCompanySlugDocumentSlugRoute
   DashboardDocsIndexRoute: typeof DashboardDocsIndexRoute
@@ -591,6 +692,13 @@ declare module '@tanstack/react-router' {
       path: '/api/docs'
       fullPath: '/api/docs'
       preLoaderRoute: typeof ApiDocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/expenses': {
+      id: '/api/expenses'
+      path: '/api/expenses'
+      fullPath: '/api/expenses'
+      preLoaderRoute: typeof ApiExpensesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/invitations': {
@@ -803,6 +911,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardPeopleNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/time-off/leaves': {
+      id: '/dashboard/time-off/leaves'
+      path: '/leaves'
+      fullPath: '/dashboard/time-off/leaves'
+      preLoaderRoute: typeof DashboardTimeOffLeavesRouteImport
+      parentRoute: typeof DashboardTimeOffRoute
+    }
     '/handbook/$companySlug/$documentSlug': {
       id: '/handbook/$companySlug/$documentSlug'
       path: '/handbook/$companySlug/$documentSlug'
@@ -816,6 +931,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/handbook/$companySlug/$documentSlug'
       preLoaderRoute: typeof ApiHandbookCompanySlugDocumentSlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/people/$personId/activity': {
+      id: '/api/people/$personId/activity'
+      path: '/activity'
+      fullPath: '/api/people/$personId/activity'
+      preLoaderRoute: typeof ApiPeoplePersonIdActivityRouteImport
+      parentRoute: typeof ApiPeoplePersonIdRoute
     }
     '/api/people/$personId/employment': {
       id: '/api/people/$personId/employment'
@@ -837,6 +959,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/people/$personId/records'
       preLoaderRoute: typeof ApiPeoplePersonIdRecordsRouteImport
       parentRoute: typeof ApiPeoplePersonIdRoute
+    }
+    '/dashboard/people/$personId/': {
+      id: '/dashboard/people/$personId/'
+      path: '/'
+      fullPath: '/dashboard/people/$personId/'
+      preLoaderRoute: typeof DashboardPeoplePersonIdIndexRouteImport
+      parentRoute: typeof DashboardPeoplePersonIdRoute
+    }
+    '/dashboard/people/$personId/activity': {
+      id: '/dashboard/people/$personId/activity'
+      path: '/activity'
+      fullPath: '/dashboard/people/$personId/activity'
+      preLoaderRoute: typeof DashboardPeoplePersonIdActivityRouteImport
+      parentRoute: typeof DashboardPeoplePersonIdRoute
+    }
+    '/dashboard/people/$personId/calendar': {
+      id: '/dashboard/people/$personId/calendar'
+      path: '/calendar'
+      fullPath: '/dashboard/people/$personId/calendar'
+      preLoaderRoute: typeof DashboardPeoplePersonIdCalendarRouteImport
+      parentRoute: typeof DashboardPeoplePersonIdRoute
+    }
+    '/dashboard/people/$personId/documents': {
+      id: '/dashboard/people/$personId/documents'
+      path: '/documents'
+      fullPath: '/dashboard/people/$personId/documents'
+      preLoaderRoute: typeof DashboardPeoplePersonIdDocumentsRouteImport
+      parentRoute: typeof DashboardPeoplePersonIdRoute
+    }
+    '/dashboard/people/$personId/records': {
+      id: '/dashboard/people/$personId/records'
+      path: '/records'
+      fullPath: '/dashboard/people/$personId/records'
+      preLoaderRoute: typeof DashboardPeoplePersonIdRecordsRouteImport
+      parentRoute: typeof DashboardPeoplePersonIdRoute
     }
     '/dashboard/people/$personId_/edit': {
       id: '/dashboard/people/$personId_/edit'
@@ -879,6 +1036,7 @@ const ApiInvitationsRouteWithChildren = ApiInvitationsRoute._addFileChildren(
 )
 
 interface ApiPeoplePersonIdRouteChildren {
+  ApiPeoplePersonIdActivityRoute: typeof ApiPeoplePersonIdActivityRoute
   ApiPeoplePersonIdEmploymentRoute: typeof ApiPeoplePersonIdEmploymentRoute
   ApiPeoplePersonIdPhotoRoute: typeof ApiPeoplePersonIdPhotoRoute
   ApiPeoplePersonIdRecordsRoute: typeof ApiPeoplePersonIdRecordsRoute
@@ -886,6 +1044,7 @@ interface ApiPeoplePersonIdRouteChildren {
 }
 
 const ApiPeoplePersonIdRouteChildren: ApiPeoplePersonIdRouteChildren = {
+  ApiPeoplePersonIdActivityRoute: ApiPeoplePersonIdActivityRoute,
   ApiPeoplePersonIdEmploymentRoute: ApiPeoplePersonIdEmploymentRoute,
   ApiPeoplePersonIdPhotoRoute: ApiPeoplePersonIdPhotoRoute,
   ApiPeoplePersonIdRecordsRoute: ApiPeoplePersonIdRecordsRoute,
@@ -907,11 +1066,46 @@ const ApiPeopleRouteWithChildren = ApiPeopleRoute._addFileChildren(
   ApiPeopleRouteChildren,
 )
 
+interface DashboardTimeOffRouteChildren {
+  DashboardTimeOffLeavesRoute: typeof DashboardTimeOffLeavesRoute
+}
+
+const DashboardTimeOffRouteChildren: DashboardTimeOffRouteChildren = {
+  DashboardTimeOffLeavesRoute: DashboardTimeOffLeavesRoute,
+}
+
+const DashboardTimeOffRouteWithChildren =
+  DashboardTimeOffRoute._addFileChildren(DashboardTimeOffRouteChildren)
+
+interface DashboardPeoplePersonIdRouteChildren {
+  DashboardPeoplePersonIdActivityRoute: typeof DashboardPeoplePersonIdActivityRoute
+  DashboardPeoplePersonIdCalendarRoute: typeof DashboardPeoplePersonIdCalendarRoute
+  DashboardPeoplePersonIdDocumentsRoute: typeof DashboardPeoplePersonIdDocumentsRoute
+  DashboardPeoplePersonIdRecordsRoute: typeof DashboardPeoplePersonIdRecordsRoute
+  DashboardPeoplePersonIdIndexRoute: typeof DashboardPeoplePersonIdIndexRoute
+}
+
+const DashboardPeoplePersonIdRouteChildren: DashboardPeoplePersonIdRouteChildren =
+  {
+    DashboardPeoplePersonIdActivityRoute: DashboardPeoplePersonIdActivityRoute,
+    DashboardPeoplePersonIdCalendarRoute: DashboardPeoplePersonIdCalendarRoute,
+    DashboardPeoplePersonIdDocumentsRoute:
+      DashboardPeoplePersonIdDocumentsRoute,
+    DashboardPeoplePersonIdRecordsRoute: DashboardPeoplePersonIdRecordsRoute,
+    DashboardPeoplePersonIdIndexRoute: DashboardPeoplePersonIdIndexRoute,
+  }
+
+const DashboardPeoplePersonIdRouteWithChildren =
+  DashboardPeoplePersonIdRoute._addFileChildren(
+    DashboardPeoplePersonIdRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
   ApiDocsRoute: ApiDocsRouteWithChildren,
+  ApiExpensesRoute: ApiExpensesRoute,
   ApiInvitationsRoute: ApiInvitationsRouteWithChildren,
   ApiMeRoute: ApiMeRoute,
   ApiOverviewRoute: ApiOverviewRoute,
@@ -928,14 +1122,14 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardMyCalendarRoute: DashboardMyCalendarRoute,
   DashboardPayrollRoute: DashboardPayrollRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
-  DashboardTimeOffRoute: DashboardTimeOffRoute,
+  DashboardTimeOffRoute: DashboardTimeOffRouteWithChildren,
   InviteTokenRoute: InviteTokenRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiMyDocsDocumentIdRoute: ApiMyDocsDocumentIdRoute,
   DashboardDocsDocumentIdRoute: DashboardDocsDocumentIdRoute,
   DashboardHandbookDocumentIdRoute: DashboardHandbookDocumentIdRoute,
-  DashboardPeoplePersonIdRoute: DashboardPeoplePersonIdRoute,
+  DashboardPeoplePersonIdRoute: DashboardPeoplePersonIdRouteWithChildren,
   DashboardPeopleNewRoute: DashboardPeopleNewRoute,
   HandbookCompanySlugDocumentSlugRoute: HandbookCompanySlugDocumentSlugRoute,
   DashboardDocsIndexRoute: DashboardDocsIndexRoute,

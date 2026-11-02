@@ -2,7 +2,10 @@ import { createFileRoute } from '@tanstack/react-router'
 import { requireCompanyAccess } from '#/lib/server-workspace'
 
 function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } })
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
 }
 
 export const Route = createFileRoute('/api/people')({
@@ -12,9 +15,10 @@ export const Route = createFileRoute('/api/people')({
         const context = await requireCompanyAccess(request, 'people', 'read')
         if ('error' in context) return context.error
         // ?status=former lists people who have left; the default is everyone still employed.
-        const former = new URL(request.url).searchParams.get('status') === 'former'
+        const former =
+          new URL(request.url).searchParams.get('status') === 'former'
         const people = await context.sql`
-          SELECT p.id, p.first_name, p.last_name, p.work_email, p.phone_number, p.avatar_url,
+          SELECT p.id, p.first_name, p.last_name, p.nickname, p.work_email, p.phone_number, p.avatar_url,
                  e.id AS employment_id, e.title, e.department, e.level, e.start_date::text AS start_date, e.status, e.end_date::text AS end_date, e.end_reason,
                  e.manager_employment_id,
                  (SELECT lp.category FROM leave_requests r JOIN leave_policies lp ON lp.id = r.leave_policy_id
@@ -35,29 +39,51 @@ export const Route = createFileRoute('/api/people')({
       POST: async ({ request }) => {
         const context = await requireCompanyAccess(request, 'people', 'write')
         if ('error' in context) return context.error
-        const body = await request.json().catch(() => null) as { name?: string; role?: string; email?: string; personalEmail?: string; startDate?: string; managerEmploymentId?: string } | null
+        const body = (await request.json().catch(() => null)) as {
+          name?: string
+          nickname?: string
+          role?: string
+          email?: string
+          personalEmail?: string
+          startDate?: string
+          managerEmploymentId?: string
+        } | null
         const name = body?.name?.trim()
         const title = body?.role?.trim()
-        if (!name || !title) return json({ error: 'Name and role are required.' }, 400)
+        if (!name || !title)
+          return json({ error: 'Name and role are required.' }, 400)
         const email = body?.email?.trim().toLowerCase() || null
-        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'Enter a valid work email.' }, 400)
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+          return json({ error: 'Enter a valid work email.' }, 400)
         const personalEmail = body?.personalEmail?.trim().toLowerCase() || null
-        if (personalEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personalEmail)) return json({ error: 'Enter a valid personal email.' }, 400)
-        const startDate = body?.startDate || new Date().toISOString().slice(0, 10)
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || Number.isNaN(Date.parse(startDate))) return json({ error: 'Enter a valid joining date.' }, 400)
+        if (personalEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personalEmail))
+          return json({ error: 'Enter a valid personal email.' }, 400)
+        const startDate =
+          body?.startDate || new Date().toISOString().slice(0, 10)
+        if (
+          !/^\d{4}-\d{2}-\d{2}$/.test(startDate) ||
+          Number.isNaN(Date.parse(startDate))
+        )
+          return json({ error: 'Enter a valid joining date.' }, 400)
         const managerId = body?.managerEmploymentId || null
         if (managerId) {
-          const manager = (await context.sql`
+          const manager = (
+            await context.sql`
             SELECT id FROM employments WHERE id = ${managerId}::uuid AND company_id = ${context.company.company_id} AND status <> 'ended'
-          `).at(0)
-          if (!manager) return json({ error: 'Choose a person from this company as manager.' }, 400)
+          `
+          ).at(0)
+          if (!manager)
+            return json(
+              { error: 'Choose a person from this company as manager.' },
+              400,
+            )
         }
         const [firstName, ...lastName] = name.split(/\s+/)
         try {
           const [person] = await context.sql`
             WITH created_person AS (
-              INSERT INTO people (organization_id, first_name, last_name, work_email, personal_email)
-              VALUES (${context.company.organization_id}, ${firstName}, ${lastName.join(' ') || null}, ${email}, ${personalEmail})
+              INSERT INTO people (organization_id, first_name, last_name, nickname, work_email, personal_email)
+              VALUES (${context.company.organization_id}, ${firstName}, ${lastName.join(' ') || null}, ${body?.nickname?.trim().slice(0, 80) || null}, ${email}, ${personalEmail})
               RETURNING id, first_name, last_name, work_email
             ), created_employment AS (
               INSERT INTO employments (person_id, company_id, title, start_date, manager_employment_id)
@@ -71,8 +97,18 @@ export const Route = createFileRoute('/api/people')({
           `
           return json({ person }, 201)
         } catch (error) {
-          if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505') {
-            return json({ error: 'That work email is already used in this organization.' }, 409)
+          if (
+            typeof error === 'object' &&
+            error !== null &&
+            'code' in error &&
+            error.code === '23505'
+          ) {
+            return json(
+              {
+                error: 'That work email is already used in this organization.',
+              },
+              409,
+            )
           }
           throw error
         }

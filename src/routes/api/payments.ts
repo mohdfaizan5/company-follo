@@ -16,6 +16,7 @@ export const Route = createFileRoute('/api/payments')({
         if ('error' in scope) return scope.error
         const sql = scope.sql
         const url = new URL(request.url)
+        const personId = url.searchParams.get('person')
         const requestedPage = Number(url.searchParams.get('page') ?? '1')
         const requestedPageSize = Number(
           url.searchParams.get('pageSize') ?? '10',
@@ -36,11 +37,11 @@ export const Route = createFileRoute('/api/payments')({
           FROM payments pay
           JOIN employments e ON e.id = pay.employment_id
           JOIN people p ON p.id = e.person_id
-          WHERE e.company_id = ${scope.company.company_id}
+          WHERE e.company_id = ${scope.company.company_id} AND (${personId}::uuid IS NULL OR p.id = ${personId}::uuid)
           ORDER BY pay.created_at DESC
           LIMIT ${pageSize} OFFSET ${offset}
         `,
-          sql`SELECT COUNT(*)::int AS count FROM payments pay JOIN employments e ON e.id = pay.employment_id WHERE e.company_id = ${scope.company.company_id}`,
+          sql`SELECT COUNT(*)::int AS count FROM payments pay JOIN employments e ON e.id = pay.employment_id JOIN people p ON p.id = e.person_id WHERE e.company_id = ${scope.company.company_id} AND (${personId}::uuid IS NULL OR p.id = ${personId}::uuid)`,
         ])
         return json({
           payments,

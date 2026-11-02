@@ -30,7 +30,7 @@ CREATE TABLE organization_memberships (
 );
 CREATE TABLE people (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(), organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  first_name TEXT NOT NULL, last_name TEXT, work_email TEXT, phone_number TEXT, personal_email TEXT, notes TEXT,
+  first_name TEXT NOT NULL, last_name TEXT, nickname TEXT, work_email TEXT, phone_number TEXT, personal_email TEXT, notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (organization_id, work_email)
 );
@@ -100,9 +100,17 @@ CREATE TABLE audit_log (
   actor_membership_id UUID REFERENCES organization_memberships(id) ON DELETE SET NULL, entity_type TEXT NOT NULL, entity_id UUID NOT NULL,
   action TEXT NOT NULL, metadata JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE TABLE person_activity (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(), person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  actor_membership_id UUID REFERENCES organization_memberships(id) ON DELETE SET NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('changed', 'commented')), summary TEXT NOT NULL,
+  changes JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 CREATE INDEX employments_company_active_idx ON employments (company_id, status);
 CREATE INDEX compensation_employment_effective_idx ON compensation_records (employment_id, effective_from DESC);
 CREATE INDEX payments_employment_period_idx ON payments (employment_id, period_end DESC);
 CREATE INDEX leave_requests_status_start_idx ON leave_requests (status, start_date);
 CREATE INDEX expenses_company_incurred_idx ON expenses (company_id, incurred_on DESC);
 CREATE INDEX documents_person_idx ON documents (person_id) WHERE person_id IS NOT NULL;
+CREATE INDEX person_activity_person_created_idx ON person_activity (person_id, created_at DESC);

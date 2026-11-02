@@ -44,7 +44,7 @@ export function CompanySwitcher({
               />
             }
           >
-            <span className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+            <span className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-lg  text-sidebar-primary-foreground">
               {logoUrl ? (
                 <img
                   src={logoUrl}
