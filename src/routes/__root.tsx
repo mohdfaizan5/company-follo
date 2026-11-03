@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { Toaster } from 'sileo'
+import { useIsMobile } from '#/hooks/use-mobile'
 import 'sileo/styles.css'
 import { CompanyFolloShell } from '../components/dashboard-shell'
 import { TooltipProvider } from '../components/ui/tooltip'
@@ -27,7 +28,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       },
       {
         name: 'viewport',
-        content: 'width=device-width, initial-scale=1',
+        content: 'width=device-width, initial-scale=1, viewport-fit=cover',
       },
       {
         title: 'CompanyFollo',
@@ -69,6 +70,8 @@ function AppRoot() {
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  // Lift toasts above the bottom tab bar on phones.
+  const isMobile = useIsMobile()
   return (
     <html lang="en">
       <head>
@@ -83,7 +86,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           <Toaster
             position="bottom-center"
             theme="dark"
-            offset={{ bottom: 24 }}
+            offset={{ bottom: isMobile ? 'calc(4.5rem + env(safe-area-inset-bottom))' : 24 }}
             options={{ duration: 4500, roundness: 14, autopilot: true }}
           />
           <Scripts />

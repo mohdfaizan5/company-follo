@@ -412,7 +412,7 @@ function ProfileContent({
 
       <Tabs value={section} className="gap-0">
         <div className="border-b">
-          <TabsList variant="underline" className="overflow-hidden">
+          <TabsList variant="underline">
             <TabsTab
               value="overview"
               render={

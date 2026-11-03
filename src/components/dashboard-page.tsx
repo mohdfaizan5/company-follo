@@ -43,7 +43,7 @@ export function DashboardPage({
     return (
       <main className="min-h-svh">
         <div
-          className={`${wide ? 'max-w-7xl' : 'max-w-5xl'} mx-auto px-5 py-8 sm:px-8`}
+          className={`${wide ? 'max-w-7xl' : 'max-w-5xl'} mx-auto px-4 py-5 sm:px-8 sm:py-8`}
         >
           {showHeading && (
             <div className="mb-4">
@@ -79,11 +79,11 @@ export function DashboardPage({
   return (
     <main className="min-h-svh ">
       <div
-        className={`${wide ? 'max-w-7xl' : 'max-w-5xl'} mx-auto px-5 py-8 sm:px-8`}
+        className={`${wide ? 'max-w-7xl' : 'max-w-5xl'} mx-auto px-4 py-5 sm:px-8 sm:py-8`}
       >
         {showHeading && (
-          <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
-            <div>
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3 sm:gap-4">
+            <div className="min-w-0">
               <h1 className="text-2xl font-semibold tracking-[-0.04em]">
                 {title}
               </h1>
@@ -94,7 +94,9 @@ export function DashboardPage({
               ) : null} */}
             </div>
             {actions ? (
-              <div className="flex flex-wrap items-center gap-2">{actions}</div>
+              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                {actions}
+              </div>
             ) : null}
           </div>
         )}

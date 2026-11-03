@@ -48,7 +48,9 @@ export function TabsList({
   return (
     <TabsPrimitive.List
       className={cn(
-        'relative z-0 flex w-fit items-center justify-center gap-x-0.5 text-muted-foreground',
+        'relative z-0 flex w-fit max-w-full items-center justify-center gap-x-0.5 text-muted-foreground',
+        // On phones a long tab row scrolls sideways instead of clipping or wrapping.
+        'data-[orientation=horizontal]:justify-start data-[orientation=horizontal]:overflow-x-auto data-[orientation=horizontal]:[scrollbar-width:none] data-[orientation=horizontal]:[&::-webkit-scrollbar]:hidden *:data-[slot=tabs-tab]:shrink-0',
         'data-[orientation=vertical]:flex-col',
         variant === 'default'
           ? 'rounded-lg bg-muted p-0.5 text-muted-foreground/72'
